@@ -1,5 +1,5 @@
 id: ARKORE09-NAMING-PATTERNS
-version: 1.0.0
+version: 1.1.0
 title: "Patterns de nommage"
 summary: >
   Règles de nommage, expressions régulières et structure des artefacts d’évidence.
@@ -12,6 +12,13 @@ exports:
     epic: "EPIC-{featureId}-{id}-{kebab_title}"
     user_story: "US-{epicId}-{id}-{kebab_title}"
     ticket: "TCK-{usId}-{id}-{kebab_title}"
+    document: "DOC-{type}-{id}-{kebab_title}"
+    report: "RPT-{type}-{id}-{date}"
+    analysis: "ANL-{scope}-{id}-{kebab_title}"
+    plan: "PLN-{type}-{id}-{version}"
+    contract: "CTR-{parties}-{id}-{date}"
+    order: "ORD-{severity}-{id}-{target}"
+    decision: "DEC-{type}-{id}-{date}"
     evidence:
       summary: "{ticket}_SUMMARY.md"
       test_report: "{ticket}_TESTS.md"
@@ -21,6 +28,13 @@ exports:
     epic: "^EPIC-FEAT-[0-9]{2,}-[0-9]{2,}-[a-z0-9-]+$"
     user_story: "^US-EPIC-[0-9]{2,}-[0-9]{2,}-[a-z0-9-]+$"
     ticket: "^TCK-US-[0-9]{2,}-[0-9]{2,}-[0-9]{2,}-[a-z0-9-]+$"
+    document: "^DOC-[A-Z]+-[0-9]{3}-[a-z0-9-]+$"
+    report: "^RPT-[A-Z]+-[0-9]{3}-[0-9]{8}$"
+    analysis: "^ANL-[A-Z]+-[0-9]{3}-[a-z0-9-]+$"
+    plan: "^PLN-[A-Z]+-[0-9]{3}-v[0-9]+\\.[0-9]+$"
+    contract: "^CTR-[A-Z]+-[0-9]{3}-[0-9]{8}$"
+    order: "^ORD-S[0-3]-[0-9]{3}-[A-Z]+$"
+    decision: "^DEC-[A-Z]+-[0-9]{3}-[0-9]{8}$"
 provides: ["patterns", "regex", "structure"]
 requires: ["ARKORE08-PATHS-GOVERNANCE@>=1.0.0"]
 contracts:

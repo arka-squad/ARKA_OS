@@ -17,11 +17,11 @@ exports:
       MEMORY_UPDATED:    { from: "ARKORE14.hooks.post_action" }
       MISSION_INGESTED:  { from: "ARKORE14.operations.MISSION_INGEST" }
     creation:
-      FEATURE_CREATED: { from: "ARKORE12.action_keys.FEATURE_CREATE (post)" }
-      EPIC_CREATED:    { from: "ARKORE12.action_keys.EPIC_CREATE (post)" }
-      US_CREATED:      { from: "ARKORE12.action_keys.US_CREATE (post)" }
-      TICKET_CREATED:  { from: "ARKORE12.action_keys.TICKET_CREATE (post)" }
-      TICKET_CLOSED:   { from: "ARKORE12.action_keys.TICKET_CLOSE (post)" }
+      FEATURE_CREATED: { from: "ARKORE12.action_keys.feature_actions.FEATURE_CREATE (post)" }
+      EPIC_CREATED:    { from: "ARKORE12.action_keys.epic_actions.EPIC_CREATE (post)" }
+      US_CREATED:      { from: "ARKORE12.action_keys.us_actions.US_CREATE (post)" }
+      TICKET_CREATED:  { from: "ARKORE12.action_keys.ticket_actions.TICKET_CREATE (post)" }
+      TICKET_CLOSED:   { from: "ARKORE12.action_keys.ticket_actions.TICKET_CLOSE (post)" }
     workflow:
       STATE_CHANGED:
         from: "ARKORE04.workflows.* transitions"

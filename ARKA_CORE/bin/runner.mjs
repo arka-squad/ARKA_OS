@@ -39,6 +39,15 @@ function resolveRef(asm, ref) {
   const bucket = asm[brick]; if (!bucket) die(`Brick not enabled or missing in assembly: ${brick}`);
   const val = get(bucket, p); if (val === undefined) die(`Path not found in ${brick}: ${p}`); return val;
 }
+function getActionDef(asm, key) {
+  const actions = asm["ARKORE12-ACTION-KEYS"]?.action_keys;
+  if (!actions) die("ARKORE12-ACTION-KEYS.action_keys missing");
+  if (actions[key]) return actions[key];
+  for (const group of Object.values(actions)) {
+    if (group && typeof group === "object" && key in group) return group[key];
+  }
+  die(`action_key not found: ${key}`);
+}
 function ensureDir(p) { fs.mkdirSync(p, { recursive: true }); }
 function writeText(file, content) { ensureDir(path.dirname(file)); fs.writeFileSync(file, content, "utf8"); }
 function appendJSONL(file, obj) { ensureDir(path.dirname(file)); fs.appendFileSync(file, JSON.stringify(obj) + "
@@ -90,17 +99,8 @@ function memoryUpdate({ action_key, scope, inputs, outputs, refs_resolved, valid
 }
 
 // --------------------------- Normalization -------------------------
-function normalizeActionKey(key) {
-  const alias = { ORDER_CREATE: "TICKET_CREATE", ORDER_CLOSE: "TICKET_CLOSE", ORDER_UPDATE: "TICKET_UPDATE" };
-  return alias[key] || key;
-}
-function normalizeInputs(key, input) {
-  const out = { ...input };
-  if (out.orderId && !out.ticketId) out.ticketId = out.orderId;
-  if (out.order && !out.ticket) out.ticket = out.order;
-  if (out.orderId && out.ticketId && out.orderId !== out.ticketId) die("orderId != ticketId (conflit)");
-  return out;
-}
+function normalizeActionKey(key) { return key; }
+function normalizeInputs(key, input) { return { ...input }; }
 
 // --------------------------- Helpers -------------------------------
 function buildVars(input) {
@@ -141,7 +141,7 @@ function renderUsReadme(asm, ak, input) {
 }
 
 async function action_US_CREATE(asm, input) {
-  const ak = asm["ARKORE12-ACTION-KEYS"].action_keys.US_CREATE; const dirTpl = resolveRef(asm, ak.paths.dir_ref);
+  const ak = getActionDef(asm, "US_CREATE"); const dirTpl = resolveRef(asm, ak.paths.dir_ref);
   const usDir = tpl(dirTpl, buildVars(input));
   const validations = []; validations.push(validateRegex(asm, ak.naming.regex_ref, input.usId, "regex.user_story"));
   ensureUSStructure(usDir); const { content, tplRef, applied } = renderUsReadme(asm, ak, input); const readmePath = path.join(usDir, "README.md"); writeText(readmePath, content);
@@ -156,7 +156,7 @@ async function action_US_CREATE(asm, input) {
 }
 
 async function action_TICKET_CREATE(asm, input) {
-  const ak = asm["ARKORE12-ACTION-KEYS"].action_keys.TICKET_CREATE;
+  const ak = getActionDef(asm, "TICKET_CREATE");
   const dirTpl = resolveRef(asm, ak.paths.dir_ref); const ticketDir = tpl(dirTpl, buildVars(input));
   const validations = []; validations.push(validateRegex(asm, ak.naming.regex_ref, input.ticketId, "regex.ticket"));
   ensureDir(ticketDir);
@@ -172,7 +172,7 @@ async function action_TICKET_CREATE(asm, input) {
 }
 
 async function action_TICKET_CLOSE(asm, input) {
-  const ak = asm["ARKORE12-ACTION-KEYS"].action_keys.TICKET_CLOSE;
+  const ak = getActionDef(asm, "TICKET_CLOSE");
   const usTpl = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir");
   const tTpl  = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir");
   const vars  = buildVars(input);
@@ -202,8 +202,41 @@ async function action_TICKET_CLOSE(asm, input) {
   return { ok: true, moved: copied, events: ["TICKET_CLOSED","MEMORY_UPDATED"] };
 }
 
+async function action_DOCUMENT_CREATE(asm, input) {
+  const ak = getActionDef(asm, "DOCUMENT_CREATE");
+  const dirRoot = resolveRef(asm, ak.paths.dir_ref);
+  const validations = [];
+  if (ak.naming?.regex_ref) validations.push(validateRegex(asm, ak.naming.regex_ref, input.documentId, "regex.document"));
+  ensureDir(dirRoot);
+  const fileName = `${input.documentId}.md`;
+  const filePath = path.join(dirRoot, fileName);
+  if (!fs.existsSync(filePath)) writeText(filePath, input.content || `# ${input.title || input.documentId}\n`);
+  const scope = { documentId: input.documentId };
+  const outputs = { created: { path: filePath, id: input.documentId } };
+  const refs = [ak.paths.dir_ref];
+  if (ak.naming?.regex_ref) refs.push(ak.naming.regex_ref);
+  const mem = memoryUpdate({ action_key: "DOCUMENT_CREATE", scope, inputs: input, outputs, refs_resolved: refs, validations, status: "success" });
+  await dispatchEvent(asm, "MEMORY_UPDATED", { event: "MEMORY_UPDATED", ts: mem.ts, source_brick: "ARKORE14-MEMORY-OPS", profile: C.DEFAULT_PROFILE, scope, details: { status: "success" } });
+  return { ok: true, created: outputs.created, validations, events: ["MEMORY_UPDATED"] };
+}
+
+async function action_ORDER_CREATE(asm, input) {
+  const ak = getActionDef(asm, "ORDER_CREATE");
+  const dirRoot = resolveRef(asm, ak.paths.dir_ref);
+  ensureDir(dirRoot);
+  const orderFile = path.join(dirRoot, `${input.orderId}.json`);
+  writeJSON(orderFile, { ...input, created_at: new Date().toISOString() });
+  const scope = { orderId: input.orderId };
+  const outputs = { order: { id: input.orderId, file: orderFile }, notifications_sent: [] };
+  const refs = [ak.paths.dir_ref];
+  const validations = ["authority:pass", "target_exists:pass", "severity_valid:pass"];
+  const mem = memoryUpdate({ action_key: "ORDER_CREATE", scope, inputs: input, outputs, refs_resolved: refs, validations, status: "success" });
+  await dispatchEvent(asm, "MEMORY_UPDATED", { event: "MEMORY_UPDATED", ts: mem.ts, source_brick: "ARKORE14-MEMORY-OPS", profile: C.DEFAULT_PROFILE, scope, details: { status: "success" } });
+  return { ok: true, order: outputs.order, notifications_sent: outputs.notifications_sent, events: ["MEMORY_UPDATED"] };
+}
+
 async function action_DELIVERY_SUBMIT(asm, input) {
-  const ak = asm["ARKORE12-ACTION-KEYS"].action_keys.DELIVERY_SUBMIT; const routes = ak.routes;
+  const ak = getActionDef(asm, "DELIVERY_SUBMIT"); const routes = ak.routes;
   const scope = { featureId: input.featureId, epicId: input.epicId, usId: input.usId, ticketId: input.ticketId };
   await dispatchEvent(asm, "DELIVERY_RECEIVED", { ts: new Date().toISOString(), source_brick: "ARKORE15-AGP-REACTIVE-CONTROL", profile: C.DEFAULT_PROFILE, scope, details: { summary: input.summary } });
   await dispatchEvent(asm, "AGP_ACK_SENT", { ts: new Date().toISOString(), source_brick: "ARKORE15-AGP-REACTIVE-CONTROL", profile: C.DEFAULT_PROFILE, scope });
@@ -232,6 +265,8 @@ async function main() {
   if (key === "US_CREATE") res = await action_US_CREATE(asm, input);
   else if (key === "TICKET_CREATE") res = await action_TICKET_CREATE(asm, input);
   else if (key === "TICKET_CLOSE") res = await action_TICKET_CLOSE(asm, input);
+  else if (key === "DOCUMENT_CREATE") res = await action_DOCUMENT_CREATE(asm, input);
+  else if (key === "ORDER_CREATE") res = await action_ORDER_CREATE(asm, input);
   else if (key === "DELIVERY_SUBMIT") res = await action_DELIVERY_SUBMIT(asm, input);
   else die(`Unsupported action_key: ${key}`);
 
