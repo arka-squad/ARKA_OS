@@ -1,0 +1,110 @@
+# ARKAA19-AGENT-CAPABILITIES.yaml
+id: ARKAA19-AGENT-CAPABILITIES
+version: 2.0.0  # Bump car on change le format
+title: "Capacités et permissions des agents (format ARKPR09)"
+summary: >
+  Définit les actions autorisées par agent en utilisant le format
+  compact ARKPR09 (type:actions) au lieu de listes explicites
+
+exports:
+  # Configuration du parser
+  permissions_format: "ARKPR09"
+  permissions_resolver_ref: "ARKPR09-PERMISSIONS-FORMAT:resolver"
+  
+  agents:
+    # === AGP ===
+    agp-architecte-gouvernance-produit:
+      use_profile: agp-architecte-gouvernance-produit
+      permissions:
+        - "feature:*"        # Tout sur features
+        - "epic:*"           # Tout sur epics  
+        - "us:*"             # Tout sur US
+        - "order:*"          # Ordres de gouvernance
+        - "decision:*"       # Décisions AGP
+        - "*:r"              # Read sur tout
+        - "*:v"              # Validate sur tout
+        - "-delete"          # Jamais delete
+      default_map: FEATURE_CREATE
+      
+    # === PMO ===
+    arka-product-manager-officer:
+      use_profile: arka-product-manager-officer
+      permissions:
+        - "us:c"             # Créer US seulement
+        - "ticket:*"         # Tout sur tickets
+        - "document:cr"      # Create/Read documents
+        - "report:cr"        # Create/Read reports
+        - "-order"           # Pas d'ordres
+      default_map: US_CREATE
+      
+    # === LEAD DEV ===
+    lead-dev-batisseur:
+      use_profile: lead-dev-batisseur
+      permissions:
+        - "ticket:*"         # Tout sur tickets
+        - "document:cru"     # Create/Read/Update docs
+        - "-feature"         # Pas touche aux features
+        - "-epic"            # Pas touche aux epics
+        - "-order"           # Pas d'ordres
+      default_map: TICKET_CREATE
+      
+    # === DEVOPS ===
+    devops-guardian:
+      use_profile: devops-guardian
+      permissions:
+        - "document:*"       # Tous les docs techniques
+        - "report:*"         # Tous les rapports
+        - "*:rs"             # Read + Status sur tout
+        - "-create"          # Ne crée rien de structurel
+      default_map: REPORT_CREATE
+      
+    # === QA ===
+    qa-testeur:
+      use_profile: qa-testeur
+      permissions:
+        - "ticket:cru"       # Create/Read/Update tickets (bugs)
+        - "report:*"         # Tous les rapports de test
+        - "document:cr"      # Create/Read docs de test
+        - "-feature"         # Pas de structure
+        - "-epic"
+        - "-us"
+      default_map: TICKET_CREATE
+      
+    # === ARCHIVISTE ===
+    archivist:
+      use_profile: archivist
+      permissions:
+        - "*:ra"             # Read + Archive sur tout
+        - "-create"          # Ne crée rien
+        - "-update"          # Ne modifie rien
+        - "-delete"          # Ne supprime rien
+      default_map: ARCHIVE_CAPTURE
+      
+    # === MARKET RESEARCH ===
+    market-research-specialist:
+      use_profile: market-research-specialist
+      permissions:
+        - "document:*"       # Documents de recherche
+        - "analysis:*"       # Analyses marché
+        - "report:cr"        # Rapports
+      default_map: ANALYSIS_CREATE
+      
+    # === UX ===
+    ux-ui-design-guardian:
+      use_profile: ux-ui-design-guardian
+      permissions:
+        - "document:*"       # Specs design
+        - "plan:cru"         # Plans UX
+        - "*:r"              # Read everything
+      default_map: DOCUMENT_CREATE
+
+contracts:
+  invariants:
+    - "Chaque use_profile existe dans ARKPR08"
+    - "Format permissions suit ARKPR09 syntax"
+    - "Parser ARKPR09 résout vers ARKORE12 action_keys"
+    
+requires:
+  - "ARKPR09-PERMISSIONS-FORMAT@>=1.0.0"
+  - "ARKPR08-PROFILES-CATALOG@>=1.1.0"
+  - "ARKORE12-ACTION-KEYS@>=2.0.0"  # Après ajout des 95 actions
