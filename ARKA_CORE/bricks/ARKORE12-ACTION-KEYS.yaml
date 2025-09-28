@@ -17,6 +17,27 @@ sources: [
 ]
 
 exports:
+  anchors:
+    post_memory_update: &post_memory_update
+      - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+    valid_exists_perms: &valid_exists_perms
+      - "filename_policy.no_spaces"
+      - "name matches regex.feature"
+    valid_exists_perms_updates: &valid_exists_perms_updates
+      - "filename_policy.no_spaces"
+      - "name matches regex.epic"
+    valid_exists_perms_structure: &valid_exists_perms_structure
+      - "filename_policy.no_spaces"
+      - "name matches regex.user_story"
+      - "structure_policy.required_files_in_us present"
+    valid_exists_perms_not_linked: &valid_exists_perms_not_linked
+      - "filename_policy.no_spaces"
+      - "name matches regex.ticket"
+    valid_delivery_ack_latency: &valid_delivery_ack_latency
+      - "zones.Z1_ack.policy.max_latency_ref honored"
+    valid_archive_capture_checks: &valid_archive_capture_checks
+      - "naming_refs.* resolve"
+      - "evidence_matrix for S2 includes 'trace' and 'review'"
   io_contracts:
     common_inputs:
       featureId:   { type: string, example: "FEAT-12" }
@@ -63,10 +84,8 @@ exports:
         files: ["${feature_dir}README.md"]
       templates:
         readme_ref: "ARKORE13-TEMPLATES:feature.readme"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.feature"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      validations: *valid_exists_perms
+      post: *post_memory_update
 
     EPIC_CREATE:
       inputs: [featureId, epicId, title, kebab_title]
@@ -82,10 +101,8 @@ exports:
         files: ["${epic_dir}README.md"]
       templates:
         readme_ref: "ARKORE13-TEMPLATES:epic.readme"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.epic"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      validations: *valid_exists_perms_updates
+      post: *post_memory_update
 
     US_CREATE:
       inputs: [featureId, epicId, usId, title, kebab_title]
@@ -105,13 +122,10 @@ exports:
       templates:
         readme_ref:     "ARKORE13-TEMPLATES:us.readme"
         acceptance_ref: "ARKORE13-TEMPLATES:us.acceptance_checklist"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.user_story"
-        - "structure_policy.required_files_in_us present"
+      validations: *valid_exists_perms_structure
       link_specs:
         acceptance_criteria_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      post: *post_memory_update
 
     TICKET_CREATE:
       inputs: [featureId, epicId, usId, ticketId, title, kebab_title]
@@ -125,10 +139,8 @@ exports:
         files: ["${ticket_dir}WORK.md", "${ticket_dir}.todo.md"]
       templates:
         work_ref: "ARKORE13-TEMPLATES:ticket.work"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.ticket"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      validations: *valid_exists_perms_not_linked
+      post: *post_memory_update
 
     TICKET_CLOSE:
       inputs: [featureId, epicId, usId, ticketId]
@@ -138,7 +150,7 @@ exports:
         keep: ["*_SUMMARY.md", "*_TESTS.md", "*_PERF.md", "approvals.json"]
       link_archive:
         handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      post: *post_memory_update
 
     DELIVERY_SUBMIT:
       inputs: [featureId, epicId?, usId?, ticketId?, summary]
@@ -149,16 +161,14 @@ exports:
         owner_confirm_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.OPTIONAL_OWNER_CONFIRM"
       flow:
         steps: ["ACK", "CONTROL_EVALUATE", "AGP_MISSION_RETURN", "OPTIONAL_OWNER_CONFIRM"]
-      validations:
-        - "zones.Z1_ack.policy.max_latency_ref honored"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      validations: *valid_delivery_ack_latency
+      post: *post_memory_update
 
     MISSION_INGEST:
       inputs: [mission_record]
       ops:
         - "ARKORE14-MEMORY-OPS:operations.MISSION_INGEST"
-      post:
-        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+      post: *post_memory_update
 
     VALIDATE_NAMING:
       inputs: [featureId?, epicId?, usId?, ticketId?]
@@ -167,15 +177,13 @@ exports:
         epic:    "ARKORE09-NAMING-PATTERNS:regex.epic"
         us:      "ARKORE09-NAMING-PATTERNS:regex.user_story"
         ticket:  "ARKORE09-NAMING-PATTERNS:regex.ticket"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      post: *post_memory_update
 
     ARCHIVE_CAPTURE:
       inputs: [featureId, epicId, usId]
-      validations:
-        - "naming_refs.* resolve"
-        - "evidence_matrix for S2 includes 'trace' and 'review'"
+      validations: *valid_archive_capture_checks
       handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      post: *post_memory_update
 
     # Action pour planifier un workflow avec retour d’un plan structuré
     WORKFLOW_PLAN:
@@ -183,7 +191,7 @@ exports:
       description: "Planifier un workflow inter-agents et retourner un schéma de plan structuré"
       outputs:
         plan: { type: json, description: "Schéma de plan avec étapes et rôles" }
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      post: *post_memory_update
 
     # Action pour permettre la revue d’un livrable par un agent critique
     REVIEW_DELIVERABLE:
@@ -192,7 +200,7 @@ exports:
       outputs:
         critique: { type: text, description: "Analyse et commentaires" }
         suggestions: { type: list, items: text }
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      post: *post_memory_update
 
   prompt_macros:
     minimal_steps:
