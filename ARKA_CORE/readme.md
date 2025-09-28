@@ -112,10 +112,24 @@ Les LLMs **n’explorent pas les règles** : ils appellent une clé p.ex. `US_CR
 La clé retourne **des références** vers : routes (`ARKORE08`), regex (`ARKORE09`), templates (`ARKORE13`),
 critères d’acceptation (`ARKORE05`), limites d’autorité (`ARKORE06`).
 
+### Référentiel 2.0.0 (96 actions)
+
+| Groupe | Actions principales |
+| --- | --- |
+| `feature_actions` | `FEATURE_CREATE`, `FEATURE_READ`, `FEATURE_UPDATE`, `FEATURE_DELETE`, `FEATURE_MOVE`, `FEATURE_RENAME`, `FEATURE_ARCHIVE`, `FEATURE_STATUS` |
+| `epic_actions` | `EPIC_CREATE`, `EPIC_READ`, `EPIC_UPDATE`, `EPIC_DELETE`, `EPIC_MOVE`, `EPIC_RENAME`, `EPIC_ARCHIVE`, `EPIC_STATUS` |
+| `us_actions` | `US_CREATE`, `US_READ`, `US_UPDATE`, `US_DELETE`, `US_MOVE`, `US_RENAME`, `US_ARCHIVE`, `US_STATUS` |
+| `ticket_actions` | `TICKET_CREATE`, `TICKET_READ`, `TICKET_UPDATE`, `TICKET_DELETE`, `TICKET_MOVE`, `TICKET_RENAME`, `TICKET_ARCHIVE`, `TICKET_STATUS`, `TICKET_CLOSE` |
+| Livrables (`document`, `report`, `analysis`, `plan`, `contract`) | Pour chaque type : `*_CREATE`, `*_READ`, `*_UPDATE`, `*_DELETE`, `*_MOVE`, `*_RENAME`, `*_ARCHIVE`, `*_STATUS`, `*_PUBLISH` |
+| Gouvernance | `ORDER_CREATE`, `ORDER_READ`, `ORDER_UPDATE`, `ORDER_DELETE`, `ORDER_ASSIGN`, `ORDER_VALIDATE`, `ORDER_CANCEL`, `ORDER_ESCALATE`, `GATE_NOTIFY`, `GATE_BROADCAST`, `DECISION_PUBLISH`, `DECISION_ARCHIVE` |
+| Support | `DELIVERY_SUBMIT`, `MISSION_INGEST`, `VALIDATE_NAMING`, `ARCHIVE_CAPTURE`, `WORKFLOW_PLAN`, `REVIEW_DELIVERABLE` |
+
+Chaque action expose `inputs`, `outputs`, `validations` et référence au minimum `ARKORE14:MEMORY_UPDATE` dans `post`. Les clés `*_CREATE` et `*_MOVE` pointent systématiquement vers les chemins `ARKORE08` pertinents et les `*_CREATE` référencent les patterns `ARKORE09`.
+
 **Exemple `US_CREATE` (I/O) :**
 
 ```yaml
-use: ARKORE12-ACTION-KEYS:action_keys.US_CREATE
+use: ARKORE12-ACTION-KEYS:action_keys.us_actions.US_CREATE
 input:
   featureId: "FEAT-12"
   epicId: "EPIC-FEAT-12-03"

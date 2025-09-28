@@ -3,11 +3,13 @@
 # (paths, regex, templates, critères). Chaque clé déclenche MEMORY_UPDATE en post.
 
 id: ARKORE12-ACTION-KEYS
-version: 1.3.2
+version: 2.0.0
 title: "Clés d’action LLM (routage rapide)"
 summary: >
-  Interface compacte pour LLM: une clé d’action par cas d’usage (create feature/epic/US/ticket,
-  close ticket, delivery submit, mission ingest, validate naming, archive). Références-only.
+  Interface compacte pour LLM: 96 clés couvrant le cycle complet (create/read/update/delete/move/
+  rename/archive/status) des features, epics, US, tickets et livrables (documents, reports,
+  analysis, plans, contracts) ainsi que la gouvernance (orders, gates, decisions). Toutes les
+  actions déclenchent MEMORY_UPDATE et ne renvoient que des références (paths, regex, templates).
 maintainers: ["agp", "pmo"]
 sources: [
   "04-processus-workflows.md",
@@ -23,11 +25,20 @@ exports:
       epicId:      { type: string, example: "EPIC-FEAT-12-03" }
       usId:        { type: string, example: "US-EPIC-12-03-07" }
       ticketId:    { type: string, example: "TCK-US-12-03-07-01" }
+      documentId:  { type: string, example: "DOC-SPEC-001" }
+      reportId:    { type: string, example: "RPT-OPS-001-20240101" }
+      analysisId:  { type: string, example: "ANL-SCOPE-001-test-audit" }
+      planId:      { type: string, example: "PLN-OPS-001-v1.0" }
+      contractId:  { type: string, example: "CTR-PARTIES-001-20240101" }
+      orderId:     { type: string, example: "ORD-S1-001-PMO" }
+      decisionId:  { type: string, example: "DEC-RISK-001-20240101" }
+      gateId:      { type: string, example: "GATE-Z1" }
+      new_title:   { type: string, example: "Nouvel intitulé" }
+      new_kebab_title: { type: string, rule: "lowercase + '-'" }
+      archive_reason: { type: string, example: "Mission terminée" }
+      destination: { type: string, example: "features/FEAT-12-deploiement/" }
       title:       { type: string, example: "supporter l’export CSV" }
       kebab_title: { type: string, rule: "lowercase + '-'" }
-    alias_inputs:           # compat: "order" == "ticket"
-      orderId -> ticketId
-      order   -> ticket
     outputs:
       dir: { type: path }
       created_files:
@@ -42,157 +53,1233 @@ exports:
     CLOSE_TICKET:      "TICKET_CLOSE"
     RECEIVE_MISSION:   "MISSION_INGEST"
     DELIVERY_SUBMIT:   "DELIVERY_SUBMIT"
-    # alias compat
-    ORDER_CREATE:      "TICKET_CREATE"
-    ORDER_CLOSE:       "TICKET_CLOSE"
+    # opérations livrables
+    CREATE_DOCUMENT:   "DOCUMENT_CREATE"
+    UPDATE_DOCUMENT:   "DOCUMENT_UPDATE"
+    PUBLISH_DOCUMENT:  "DOCUMENT_PUBLISH"
+    ARCHIVE_DOCUMENT:  "DOCUMENT_ARCHIVE"
+    CREATE_REPORT:     "REPORT_CREATE"
+    UPDATE_REPORT:     "REPORT_UPDATE"
+    PUBLISH_REPORT:    "REPORT_PUBLISH"
+    CREATE_ANALYSIS:   "ANALYSIS_CREATE"
+    CREATE_PLAN:       "PLAN_CREATE"
+    CREATE_CONTRACT:   "CONTRACT_CREATE"
+
+    # gouvernance
+    ORDER_CREATE:      "ORDER_CREATE"
+    ORDER_ASSIGN:      "ORDER_ASSIGN"
+    ORDER_VALIDATE:    "ORDER_VALIDATE"
+    ORDER_CANCEL:      "ORDER_CANCEL"
+    ORDER_ESCALATE:    "ORDER_ESCALATE"
+    DECISION_PUBLISH:  "DECISION_PUBLISH"
+    DECISION_ARCHIVE:  "DECISION_ARCHIVE"
+    GATE_NOTIFY:       "GATE_NOTIFY"
+    GATE_BROADCAST:    "GATE_BROADCAST"
 
     # nouveaux intents pour la planification de workflow et la revue de livrables
     PLAN_WORKFLOW:     "WORKFLOW_PLAN"
     REVIEW_DELIVERABLE: "REVIEW_DELIVERABLE"
 
   action_keys:
-    FEATURE_CREATE:
-      inputs: [featureId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.feature"
-      paths:
-        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
-      create:
-        dirs: ["${feature_dir}", "${feature_dir}epics/"]
-        files: ["${feature_dir}README.md"]
-      templates:
-        readme_ref: "ARKORE13-TEMPLATES:feature.readme"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.feature"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    feature_actions:
+      FEATURE_CREATE:
+        inputs: [featureId, title, kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
+          regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.feature"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+        create:
+          dirs: ["${feature_dir}", "${feature_dir}epics/"]
+          files: ["${feature_dir}README.md"]
+        templates:
+          readme_ref: "ARKORE13-TEMPLATES:feature.readme"
+        outputs:
+          created:
+            dir: "${feature_dir}"
+            files: ["${feature_dir}README.md"]
+        validations:
+          - "filename_policy.no_spaces"
+          - "name matches regex.feature"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_READ:
+        inputs: [featureId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_UPDATE:
+        inputs: [featureId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_DELETE:
+        inputs: [featureId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_MOVE:
+        inputs: [featureId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.features_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_RENAME:
+        inputs: [featureId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.feature"
+        outputs:
+          renamed:
+            id: featureId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_ARCHIVE:
+        inputs: [featureId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      FEATURE_STATUS:
+        inputs: [featureId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    epic_actions:
+      EPIC_CREATE:
+        inputs: [featureId, epicId, title, kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.epic"
+          regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.epic"
+        associations:
+          feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
+        create:
+          dirs: ["${epic_dir}", "${epic_dir}US/"]
+          files: ["${epic_dir}README.md"]
+        templates:
+          readme_ref: "ARKORE13-TEMPLATES:epic.readme"
+        outputs:
+          created:
+            dir: "${epic_dir}"
+            files: ["${epic_dir}README.md"]
+        validations:
+          - "filename_policy.no_spaces"
+          - "name matches regex.epic"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_READ:
+        inputs: [epicId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_UPDATE:
+        inputs: [epicId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_DELETE:
+        inputs: [epicId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_MOVE:
+        inputs: [epicId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.epics_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_RENAME:
+        inputs: [epicId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.epic"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.epic"
+        outputs:
+          renamed:
+            id: epicId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_ARCHIVE:
+        inputs: [epicId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      EPIC_STATUS:
+        inputs: [epicId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    us_actions:
+      US_CREATE:
+        inputs: [featureId, epicId, usId, title, kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.user_story"
+          regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.user_story"
+        associations:
+          feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+          epic_dir_ref:    "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"
+          evidence_dir: "${us_dir}evidence/"
+          tickets_dir:  "${us_dir}tickets/"
+        create:
+          dirs: ["${us_dir}", "${us_dir}evidence/", "${us_dir}tickets/"]
+          files: ["${us_dir}README.md"]
+        templates:
+          readme_ref:     "ARKORE13-TEMPLATES:us.readme"
+          acceptance_ref: "ARKORE13-TEMPLATES:us.acceptance_checklist"
+        outputs:
+          created:
+            dir: "${us_dir}"
+            files: ["${us_dir}README.md"]
+        validations:
+          - "filename_policy.no_spaces"
+          - "name matches regex.user_story"
+          - "structure_policy.required_files_in_us present"
+        link_specs:
+          acceptance_criteria_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_READ:
+        inputs: [usId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_UPDATE:
+        inputs: [usId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_DELETE:
+        inputs: [usId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_MOVE:
+        inputs: [usId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.user_stories_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_RENAME:
+        inputs: [usId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.user_story"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.user_story"
+        outputs:
+          renamed:
+            id: usId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_ARCHIVE:
+        inputs: [usId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      US_STATUS:
+        inputs: [usId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    ticket_actions:
+      TICKET_CREATE:
+        inputs: [featureId, epicId, usId, ticketId, title, kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.ticket"
+          regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.ticket"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"
+        create:
+          dirs: ["${ticket_dir}"]
+          files: ["${ticket_dir}WORK.md", "${ticket_dir}.todo.md"]
+        templates:
+          work_ref: "ARKORE13-TEMPLATES:ticket.work"
+        outputs:
+          created:
+            dir: "${ticket_dir}"
+            files: ["${ticket_dir}WORK.md", "${ticket_dir}.todo.md"]
+        validations:
+          - "filename_policy.no_spaces"
+          - "name matches regex.ticket"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_READ:
+        inputs: [ticketId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_UPDATE:
+        inputs: [ticketId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_DELETE:
+        inputs: [ticketId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_MOVE:
+        inputs: [ticketId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.tickets_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_RENAME:
+        inputs: [ticketId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.ticket"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.ticket"
+        outputs:
+          renamed:
+            id: ticketId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_ARCHIVE:
+        inputs: [ticketId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_STATUS:
+        inputs: [ticketId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      TICKET_CLOSE:
+        inputs: [featureId, epicId, usId, ticketId]
+        move:
+          src: "${ticket_dir}"
+          dst: "${us_dir}evidence/"
+          keep: ["*_SUMMARY.md", "*_TESTS.md", "*_PERF.md", "approvals.json"]
+        link_archive:
+          handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
+        outputs:
+          moved_to_evidence:
+            type: list
+            items: path
+        validations:
+          - "exists"
+          - "permissions"
+          - "handoff_ready"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    document_actions:
+      DOCUMENT_CREATE:
+        inputs: [documentId, title, content, type, scope]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.document"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.document"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.documents_root"
+        outputs:
+          created:
+            path: { type: path }
+            id: documentId
+        validations:
+          - "naming"
+          - "permissions"
+          - "quota"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_READ:
+        inputs: [documentId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_UPDATE:
+        inputs: [documentId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_DELETE:
+        inputs: [documentId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_MOVE:
+        inputs: [documentId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.documents_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_RENAME:
+        inputs: [documentId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.document"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.document"
+        outputs:
+          renamed:
+            id: documentId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_ARCHIVE:
+        inputs: [documentId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_STATUS:
+        inputs: [documentId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DOCUMENT_PUBLISH:
+        inputs: [documentId, channel]
+        outputs:
+          published:
+            status: "published"
+            channel: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "channel_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    report_actions:
+      REPORT_CREATE:
+        inputs: [reportId, title, content, type, scope]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.report"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.report"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.reports_root"
+        outputs:
+          created:
+            path: { type: path }
+            id: reportId
+        validations:
+          - "naming"
+          - "permissions"
+          - "quota"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_READ:
+        inputs: [reportId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_UPDATE:
+        inputs: [reportId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_DELETE:
+        inputs: [reportId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_MOVE:
+        inputs: [reportId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.reports_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_RENAME:
+        inputs: [reportId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.report"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.report"
+        outputs:
+          renamed:
+            id: reportId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_ARCHIVE:
+        inputs: [reportId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_STATUS:
+        inputs: [reportId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REPORT_PUBLISH:
+        inputs: [reportId, channel]
+        outputs:
+          published:
+            status: "published"
+            channel: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "channel_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    analysis_actions:
+      ANALYSIS_CREATE:
+        inputs: [analysisId, title, content, type, scope]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.analysis"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.analysis"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.analysis_root"
+        outputs:
+          created:
+            path: { type: path }
+            id: analysisId
+        validations:
+          - "naming"
+          - "permissions"
+          - "quota"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_READ:
+        inputs: [analysisId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_UPDATE:
+        inputs: [analysisId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_DELETE:
+        inputs: [analysisId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_MOVE:
+        inputs: [analysisId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.analysis_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_RENAME:
+        inputs: [analysisId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.analysis"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.analysis"
+        outputs:
+          renamed:
+            id: analysisId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_ARCHIVE:
+        inputs: [analysisId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_STATUS:
+        inputs: [analysisId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ANALYSIS_PUBLISH:
+        inputs: [analysisId, channel]
+        outputs:
+          published:
+            status: "published"
+            channel: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "channel_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    plan_actions:
+      PLAN_CREATE:
+        inputs: [planId, title, content, type, scope]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.plan"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.plan"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.plans_root"
+        outputs:
+          created:
+            path: { type: path }
+            id: planId
+        validations:
+          - "naming"
+          - "permissions"
+          - "quota"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_READ:
+        inputs: [planId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_UPDATE:
+        inputs: [planId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_DELETE:
+        inputs: [planId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_MOVE:
+        inputs: [planId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.plans_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_RENAME:
+        inputs: [planId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.plan"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.plan"
+        outputs:
+          renamed:
+            id: planId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_ARCHIVE:
+        inputs: [planId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_STATUS:
+        inputs: [planId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      PLAN_PUBLISH:
+        inputs: [planId, channel]
+        outputs:
+          published:
+            status: "published"
+            channel: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "channel_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    contract_actions:
+      CONTRACT_CREATE:
+        inputs: [contractId, title, content, type, scope]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.contract"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.contract"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.contracts_root"
+        outputs:
+          created:
+            path: { type: path }
+            id: contractId
+        validations:
+          - "naming"
+          - "permissions"
+          - "quota"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_READ:
+        inputs: [contractId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_UPDATE:
+        inputs: [contractId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_DELETE:
+        inputs: [contractId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_MOVE:
+        inputs: [contractId, destination]
+        paths:
+          destination_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.contracts_root"
+        outputs:
+          moved: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "path_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_RENAME:
+        inputs: [contractId, new_title, new_kebab_title]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.contract"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.contract"
+        outputs:
+          renamed:
+            id: contractId
+            from: { type: string }
+            to: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_ARCHIVE:
+        inputs: [contractId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.archives_root"
+        outputs:
+          archived:
+            status: "archived"
+            archive_path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_STATUS:
+        inputs: [contractId]
+        outputs:
+          status: { type: string }
+          history:
+            type: list
+            items: object
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      CONTRACT_PUBLISH:
+        inputs: [contractId, channel]
+        outputs:
+          published:
+            status: "published"
+            channel: { type: string }
+        validations:
+          - "exists"
+          - "permissions"
+          - "channel_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+    order_actions:
+      ORDER_CREATE:
 
-    EPIC_CREATE:
-      inputs: [featureId, epicId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.epic"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.epic"
-      associations:
-        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
-      paths:
-        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
-      create:
-        dirs: ["${epic_dir}", "${epic_dir}US/"]
-        files: ["${epic_dir}README.md"]
-      templates:
-        readme_ref: "ARKORE13-TEMPLATES:epic.readme"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.epic"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+        inputs: [orderId, severity, target, directive, deadline]
+        authority_required: ["agp", "owner"]
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.governance.orders_root"
+        outputs:
+          order: {{ type: object }}
+          notifications_sent:
+            type: list
+            items: object
+        validations:
+          - "authority"
+          - "target_exists"
+          - "severity_valid"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
 
-    US_CREATE:
-      inputs: [featureId, epicId, usId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.user_story"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.user_story"
-      associations:
-        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
-        epic_dir_ref:    "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
-      paths:
-        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"
-        evidence_dir: "${us_dir}evidence/"
-        tickets_dir:  "${us_dir}tickets/"
-      create:
-        dirs: ["${us_dir}", "${us_dir}evidence/", "${us_dir}tickets/"]
-        files: ["${us_dir}README.md"]
-      templates:
-        readme_ref:     "ARKORE13-TEMPLATES:us.readme"
-        acceptance_ref: "ARKORE13-TEMPLATES:us.acceptance_checklist"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.user_story"
-        - "structure_policy.required_files_in_us present"
-      link_specs:
-        acceptance_criteria_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ORDER_READ:
+        inputs: [orderId]
+        outputs:
+          record: { type: object }
+          path: { type: path }
+        validations:
+          - "exists"
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ORDER_UPDATE:
+        inputs: [orderId, updates]
+        outputs:
+          updated: { type: object }
+          previous: { type: object }
+        validations:
+          - "exists"
+          - "permissions"
+          - "valid_updates"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ORDER_DELETE:
+        inputs: [orderId, archive_reason?]
+        outputs:
+          status: "deleted"
+        validations:
+          - "exists"
+          - "permissions"
+          - "not_linked"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      ORDER_ASSIGN:
 
-    TICKET_CREATE:
-      inputs: [featureId, epicId, usId, ticketId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.ticket"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.ticket"
-      paths:
-        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"
-      create:
-        dirs: ["${ticket_dir}"]
-        files: ["${ticket_dir}WORK.md", "${ticket_dir}.todo.md"]
-      templates:
-        work_ref: "ARKORE13-TEMPLATES:ticket.work"
-      validations:
-        - "filename_policy.no_spaces"
-        - "name matches regex.ticket"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+        inputs: [orderId, assignee]
+        outputs:
+          assigned:
+            id: orderId
+            assignee: {{ type: string }}
+        validations:
+          - "exists"
+          - "permissions"
+          - "assignee_valid"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
 
-    TICKET_CLOSE:
-      inputs: [featureId, epicId, usId, ticketId]
-      move:
-        src: "${ticket_dir}"
-        dst: "${us_dir}evidence/"
-        keep: ["*_SUMMARY.md", "*_TESTS.md", "*_PERF.md", "approvals.json"]
-      link_archive:
+      ORDER_VALIDATE:
+
+        inputs: [orderId, validator]
+        outputs:
+          validated:
+            id: orderId
+            validator: {{ type: string }}
+        validations:
+          - "exists"
+          - "permissions"
+          - "authority"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+      ORDER_CANCEL:
+
+        inputs: [orderId, archive_reason]
+        outputs:
+          status: "cancelled"
+        validations:
+          - "exists"
+          - "permissions"
+          - "cancellation_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+      ORDER_ESCALATE:
+
+        inputs: [orderId, level, reason]
+        outputs:
+          escalated:
+            id: orderId
+            level: {{ type: string }}
+            reason: {{ type: string }}
+        validations:
+          - "exists"
+          - "permissions"
+          - "escalation_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    gate_actions:
+      GATE_NOTIFY:
+
+        inputs: [gateId, target_audience, message]
+        outputs:
+          notified:
+            gate: gateId
+            audience: {{ type: string }}
+        validations:
+          - "exists"
+          - "permissions"
+          - "notification_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+      GATE_BROADCAST:
+
+        inputs: [gateId, message, channels]
+        outputs:
+          broadcast:
+            gate: gateId
+            channels: {{ type: list }}
+        validations:
+          - "exists"
+          - "permissions"
+          - "channel_allowed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    decision_actions:
+      DECISION_PUBLISH:
+
+        inputs: [decisionId, content, effective_date]
+        naming:
+          pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.decision"
+          regex_ref: "ARKORE09-NAMING-PATTERNS:regex.decision"
+        paths:
+          dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.governance.decisions_root"
+        outputs:
+          decision:
+            id: decisionId
+            effective_date: {{ type: string }}
+        validations:
+          - "exists"
+          - "permissions"
+          - "naming"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+      DECISION_ARCHIVE:
+
+        inputs: [decisionId, archive_reason]
+        paths:
+          archive_dir_ref: "ARKORE08-PATHS-GOVERNANCE:paths.governance.decisions_root"
+        outputs:
+          archived:
+            id: decisionId
+            status: "archived"
+        validations:
+          - "exists"
+          - "permissions"
+          - "archive_policy"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    support_actions:
+      MISSION_INGEST:
+
+        inputs: [mission_record]
+        ops:
+          - "ARKORE14-MEMORY-OPS:operations.MISSION_INGEST"
+        outputs:
+          status: "ingested"
+        validations:
+          - "mission_ingest:pass"
+        post:
+          - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+
+      VALIDATE_NAMING:
+
+        inputs: [featureId?, epicId?, usId?, ticketId?, documentId?, reportId?, analysisId?, planId?, contractId?]
+        checks:
+          feature: "ARKORE09-NAMING-PATTERNS:regex.feature"
+          epic:    "ARKORE09-NAMING-PATTERNS:regex.epic"
+          us:      "ARKORE09-NAMING-PATTERNS:regex.user_story"
+          ticket:  "ARKORE09-NAMING-PATTERNS:regex.ticket"
+          document: "ARKORE09-NAMING-PATTERNS:regex.document"
+          report:   "ARKORE09-NAMING-PATTERNS:regex.report"
+          analysis: "ARKORE09-NAMING-PATTERNS:regex.analysis"
+          plan:     "ARKORE09-NAMING-PATTERNS:regex.plan"
+          contract: "ARKORE09-NAMING-PATTERNS:regex.contract"
+        outputs:
+          validation:
+            status: "checked"
+        validations:
+          - "regex_checks:pass"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+      ARCHIVE_CAPTURE:
+
+        inputs: [featureId, epicId, usId]
+        validations:
+          - "naming_refs.* resolve"
+          - "evidence_matrix for S2 includes 'trace' and 'review'"
         handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+        outputs:
+          archived:
+            scope: {{ type: object }}
+            status: "captured"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
 
-    DELIVERY_SUBMIT:
-      inputs: [featureId, epicId?, usId?, ticketId?, summary]
-      routes:
-        notify_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
-        control_ref:      "ARKORE15-AGP-REACTIVE-CONTROL:action_map.CONTROL_EVALUATE"
-        return_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.AGP_MISSION_RETURN"
-        owner_confirm_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.OPTIONAL_OWNER_CONFIRM"
-      flow:
-        steps: ["ACK", "CONTROL_EVALUATE", "AGP_MISSION_RETURN", "OPTIONAL_OWNER_CONFIRM"]
-      validations:
-        - "zones.Z1_ack.policy.max_latency_ref honored"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      WORKFLOW_PLAN:
 
-    MISSION_INGEST:
-      inputs: [mission_record]
-      ops:
-        - "ARKORE14-MEMORY-OPS:operations.MISSION_INGEST"
-      post:
-        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        inputs: [workflowName, scope?]
+        description: "Planifier un workflow inter-agents et retourner un schéma de plan structuré"
+        outputs:
+          plan: {{ type: json, description: "Schéma de plan avec étapes et rôles" }}
+        validations:
+          - "exists"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
 
-    VALIDATE_NAMING:
-      inputs: [featureId?, epicId?, usId?, ticketId?]
-      checks:
-        feature: "ARKORE09-NAMING-PATTERNS:regex.feature"
-        epic:    "ARKORE09-NAMING-PATTERNS:regex.epic"
-        us:      "ARKORE09-NAMING-PATTERNS:regex.user_story"
-        ticket:  "ARKORE09-NAMING-PATTERNS:regex.ticket"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      REVIEW_DELIVERABLE:
 
-    ARCHIVE_CAPTURE:
-      inputs: [featureId, epicId, usId]
-      validations:
-        - "naming_refs.* resolve"
-        - "evidence_matrix for S2 includes 'trace' and 'review'"
-      handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+        inputs: [deliverablePath, reviewer]
+        description: "Critiquer et proposer des améliorations sur un livrable donné"
+        outputs:
+          critique: {{ type: text, description: "Analyse et commentaires" }}
+          suggestions: {{ type: list, items: text }}
+        validations:
+          - "permissions"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
 
-    # Action pour planifier un workflow avec retour d’un plan structuré
-    WORKFLOW_PLAN:
-      inputs: [workflowName, scope?]
-      description: "Planifier un workflow inter-agents et retourner un schéma de plan structuré"
-      outputs:
-        plan: { type: json, description: "Schéma de plan avec étapes et rôles" }
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+      DELIVERY_SUBMIT:
 
-    # Action pour permettre la revue d’un livrable par un agent critique
-    REVIEW_DELIVERABLE:
-      inputs: [deliverablePath, reviewer]
-      description: "Critiquer et proposer des améliorations sur un livrable donné"
-      outputs:
-        critique: { type: text, description: "Analyse et commentaires" }
-        suggestions: { type: list, items: text }
-      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+        inputs: [featureId, epicId?, usId?, ticketId?, summary]
+        routes:
+          notify_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
+          control_ref:      "ARKORE15-AGP-REACTIVE-CONTROL:action_map.CONTROL_EVALUATE"
+          return_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.AGP_MISSION_RETURN"
+          owner_confirm_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.OPTIONAL_OWNER_CONFIRM"
+        flow:
+          steps: ["ACK", "CONTROL_EVALUATE", "AGP_MISSION_RETURN", "OPTIONAL_OWNER_CONFIRM"]
+        validations:
+          - "zones.Z1_ack.policy.max_latency_ref honored"
+        outputs:
+          status: "processed"
+        post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
 
   prompt_macros:
     minimal_steps:
@@ -205,8 +1292,8 @@ exports:
 
 provides: ["action_keys", "io_contracts", "prompt_macros", "intent_router"]
 requires: [
-  "ARKORE08-PATHS-GOVERNANCE@>=1.1.0",
-  "ARKORE09-NAMING-PATTERNS@>=1.0.0",
+  "ARKORE08-PATHS-GOVERNANCE@>=1.2.0",
+  "ARKORE09-NAMING-PATTERNS@>=1.1.0",
   "ARKORE05-EXECUTION-SPECS@>=1.0.0",
   "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0",
   "ARKORE13-TEMPLATES@>=1.0.0",
@@ -219,7 +1306,8 @@ contracts:
     - "DELIVERY_SUBMIT.flow[0] == 'ACK'"
     - "only refs, no duplication of rules"
     - "all *_ref resolve under enabled profile"
-    - "ORDER_* aliases map only to canonical TICKET_* keys"
+    - "all CREATE actions reference naming + paths for placement"
+    - "all MOVE actions reference destination_ref"
   schema: "jsonschema://arka/action-keys/v1"
 change_policy:
   compatibility: semver

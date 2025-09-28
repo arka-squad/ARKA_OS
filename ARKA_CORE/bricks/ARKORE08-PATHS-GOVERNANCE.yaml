@@ -1,5 +1,5 @@
 id: ARKORE08-PATHS-GOVERNANCE
-version: 1.1.0
+version: 1.2.0
 title: "Chemins, routes & organisation du repo"
 summary: >
   Structure des répertoires, règles de routage (création/placement des artefacts),
@@ -32,6 +32,15 @@ exports:
     archives_root: "archives/"
     rollback_snapshots: "rollback/snapshots/"
     rollback_migrations: "rollback/migrations/"
+    deliverables:
+      documents_root: "deliverables/documents/"
+      reports_root: "deliverables/reports/"
+      analysis_root: "deliverables/analysis/"
+      plans_root: "deliverables/plans/"
+      contracts_root: "deliverables/contracts/"
+    governance:
+      orders_root: "orders/"
+      decisions_root: "decisions/"
   path_templates:
     feature_dir: "features/${featureId}-${kebab_title}/"
     epic_dir: "features/${featureId}-${kebab_feature}/epics/${epicId}-${kebab_title}/"
