@@ -1,0 +1,146 @@
+# ARKA_AGENT/client/acme/ARKAA20-CLIENT-CARD-ACME.yaml
+id: ARKAA20-CLIENT-CARD-ACME
+version: 1.0.0
+title: "Configuration client ACME - Centralisée"
+summary: >
+  Remplace 300+ lignes dupliquées dans chaque Card agent.
+  Référence uniquement ce qui existe dans ARKA_OS.
+
+# === IDENTIFICATION CLIENT ===
+client:
+  name: "ACME Corp"
+  project: "ARKA Multi-Agent System"
+  sector: "fintech"  # depuis ARKAA10-CONTEXT
+  locale:
+    lang: "fr-FR"
+    tz: "Europe/Paris"
+
+# === RÈGLES PROJET (références ARKA_OS réelles) ===
+project_rules:
+  # Références aux briques ARKORE existantes
+  core_refs:
+    hierarchy: "ARKORE01-HIERARCHY"
+    rules: "ARKORE02-GLOBAL-RULES"
+    teams: "ARKORE03-TEAMS-CLAUDE"
+    workflows: "ARKORE04-WORKFLOWS"
+    execution: "ARKORE05-EXECUTION-SPECS"
+    control: "ARKORE06-CONTROL-MATRICES"
+    paths: "ARKORE08-PATHS-GOVERNANCE"
+    naming: "ARKORE09-NAMING-PATTERNS"
+  
+  # Gouvernance avec refs
+  governance:
+    agp_gate_ref: "ARKORE04-WORKFLOWS:agp_gate"
+    evidence_pack_ref: "ARKORE06-CONTROL-MATRICES:evidence_matrix"
+    authority_ref: "ARKORE06-CONTROL-MATRICES:authority_matrix"
+    escalation_ref: "ARKORE06-CONTROL-MATRICES:escalation_matrix"
+  
+  # Critères d'acceptation
+  acceptance:
+    dor_ref: "ARKORE05-EXECUTION-SPECS:metrics"
+    dod_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
+    security_ref: "ARKORE05-EXECUTION-SPECS:security_baseline"
+  
+  # Workflow
+  workflow:
+    lifecycle_ref: "ARKORE04-WORKFLOWS:task_lifecycle"
+    states_ref: "ARKORE04-WORKFLOWS:states"
+    validation_ref: "ARKORE04-WORKFLOWS:validation"
+  
+  # Mémoire
+  memory:
+    ops_ref: "ARKORE14-MEMORY-OPS:operations"
+    schema_ref: "ARKORE14-MEMORY-OPS:schema"
+    retention_ref: "ARKORE14-MEMORY-OPS:retention"
+  
+  # Chemins et nommage
+  paths:
+    layout_ref: "ARKORE08-PATHS-GOVERNANCE:repo_layout"
+    templates_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates"
+    routing_ref: "ARKORE08-PATHS-GOVERNANCE:routing"
+  
+  naming:
+    patterns_ref: "ARKORE09-NAMING-PATTERNS:patterns"
+    regex_ref: "ARKORE09-NAMING-PATTERNS:regex"
+
+# === CONFIGURATION CLIENT ===
+configuration:
+  # Providers LLM
+  providers:
+    allowed: ["claude-3-opus", "gpt-4", "gemini-pro"]
+    default: "claude-3-opus"
+    multi_provider: true
+    must_log: true
+  
+  # Ton et langage (depuis les Cards)
+  language:
+    ban: ["NEVER", "catastrophique", "impossible"]
+    prefer: ["proposition", "recommandation", "option"]
+    
+  # Contraintes techniques
+  limits:
+    max_file_size_mb: 50
+    max_parallel_agents: 6
+    timeout_seconds: 300
+    
+  # Options de développement
+  dev_mode:
+    forbid_mock_apis: true
+    forbid_placeholder_code: true
+    require_real_implementation: true
+
+# === LIVRABLES (refs ARKORE) ===
+deliverables:
+  # Evidence pack
+  evidence:
+    components_ref: "ARKORE06-CONTROL-MATRICES:evidence_matrix.required_artifacts"
+    location: ".mem/{agent}/evidence/"
+  
+  # Rapports
+  reports:
+    format: "CR-{role}_YYYYMMDD-HHMM.md"
+    location_ref: "ARKORE08-PATHS-GOVERNANCE:memory_isolation"
+    
+  # Templates
+  templates_ref: "ARKORE13-TEMPLATES"
+
+# === RÉFÉRENCES CLIENT (à fournir) ===
+client_docs:
+  # Ces documents doivent être fournis par le client
+  vision: null      # "${CLIENT_DIR}/vision.md"
+  roadmap: null     # "${CLIENT_DIR}/roadmap.md"
+  architecture: null # "${CLIENT_DIR}/architecture.md"
+  
+# === INTÉGRATIONS EXISTANTES ===
+integrations:
+  plan_directeur_ref: "ARKAA15-PLAN-DIRECTEUR"
+  context_ref: "ARKAA10-CONTEXT"
+  compliance_ref: "ARKAA13-COMPLIANCE-POLICY"
+  vocab_aliases_ref: "ARKAA14-VOCAB-ALIASES"
+  events_ref: "ARKAA12-EVENTS-PACK"
+  project_context_ref: "ARKAA21-PROJECT-CONTEXT"
+
+# === MÉTADONNÉES ===
+metadata:
+  created: "2025-01-XX"
+  version_control:
+    min_arka_core: "1.0.0"
+    min_profiles: "1.1.0"
+    
+# === CONTRATS ===
+contracts:
+  invariants:
+    - "Toutes les Cards référencent ce fichier via client_card_ref"
+    - "Aucune duplication des project_rules dans les Cards"
+    - "Toutes les refs doivent résoudre vers ARKORE/ARKAA existants"
+    
+provides: ["project_rules", "configuration", "deliverables", "integrations"]
+requires: 
+  - "ARKORE01-HIERARCHY@>=1.0.0"
+  - "ARKORE02-GLOBAL-RULES@>=1.0.0"
+  - "ARKORE04-WORKFLOWS@>=1.0.0"
+  - "ARKORE05-EXECUTION-SPECS@>=1.0.0"
+  - "ARKORE06-CONTROL-MATRICES@>=1.0.0"
+  - "ARKORE08-PATHS-GOVERNANCE@>=1.1.0"
+  - "ARKORE09-NAMING-PATTERNS@>=1.0.0"
+  - "ARKORE14-MEMORY-OPS@>=1.0.0"
