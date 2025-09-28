@@ -1,0 +1,38 @@
+id: ARKORE01-HIERARCHY
+version: 1.0.0
+title: "Hiérarchie et autorités"
+summary: >
+  Source unique des rôles, des niveaux d’autorité et des relations de reporting.
+maintainers: ["owner", "agp"]
+sources:
+  - "01-fondations-hierarchie.md"
+exports:
+  roles:
+    owner:
+      description: "Responsable ultime. Peut bypass en cas d’urgence documentée."
+    agp:
+      description: "Architecte de Gouvernance Principal. Tient la gate d’entrée et arbitre les conflits de règles."
+    pmo:
+      description: "Orchestrateur opérationnel. Distribue aux agents d’exécution. Limité à un pool défini."
+    execution_agents:
+      description: "Agents spécialisés. Ne décident pas de la gouvernance."
+    archiviste:
+      description: "Équipe autonome en charge de l’archivage/curation."
+  authority_levels:
+    order: ["owner", "agp", "pmo", "execution_agents", "archiviste"]
+    notes:
+      - "Le passage par la gate AGP est obligatoire hors bypass Owner."
+  reporting:
+    pmo -> agp: "reporting hebdomadaire + sur incidents"
+    execution_agents -> pmo: "chaque tâche"
+    archiviste -> agp: "mensuel + demandes d’accès exceptionnelles"
+provides: ["roles", "hierarchy", "reporting"]
+requires: []
+contracts:
+  invariants:
+    - "authority_levels.order[0] == 'owner'"
+    - "'agp' precedes 'pmo'"
+  schema: "jsonschema://arka/hierarchy/v1"
+change_policy:
+  compatibility: semver
+  stable_keys: ["roles", "authority_levels.order"]

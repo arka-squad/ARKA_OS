@@ -1,0 +1,12 @@
+profile: default
+assert:
+  - ref: "ARKORE04-WORKFLOWS:workflows.agp_gate.criteria_ref"
+    resolves_to: "ARKORE06-CONTROL-MATRICES:gate.criteria"
+  - ref: "ARKORE04-WORKFLOWS:validation.acceptance_ref"
+    resolves_to: "ARKORE05-EXECUTION-SPECS:acceptance"
+  - ref: "ARKORE03-TEAMS-CLAUDE:limitations.external_invocations"
+    equals: "forbidden"
+  - ref: "ARKORE12-ACTION-KEYS:action_keys.US_CREATE.naming.regex_ref"
+    resolves_to: "ARKORE09-NAMING-PATTERNS:regex.user_story"
+  - ref: "ARKORE12-ACTION-KEYS:action_keys.US_CREATE.paths.dir_ref"
+    resolves_to: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"

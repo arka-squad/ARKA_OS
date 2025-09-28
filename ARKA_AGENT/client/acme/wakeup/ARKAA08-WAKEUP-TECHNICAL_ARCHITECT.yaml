@@ -1,0 +1,26 @@
+id: ARKAA08-WAKEUP-TECHNICAL_ARCHITECT
+version: 1.0.0
+agent_id: arka-agent05-technical-architect
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.technical-architect
+capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.technical-architect
+keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+memory:
+  dir: .mem/technical-architect/
+  index: .mem/technical-architect/index.json
+context_refs:
+  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
+  default_intent: FEATURE_CREATE
+rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
+rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
+available_intents:
+  - FEATURE_CREATE
+  - PLAN_WORKFLOW
+  - REVIEW_DELIVERABLE
+guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
+contracts:
+  invariants:
+    - resolves(use_profile_ref)
+    - resolves(capabilities_ref)
+    - resolves(keys_catalog_ref)

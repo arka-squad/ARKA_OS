@@ -1,0 +1,35 @@
+id: RULES_INDEX
+version: 0.1.0
+title: "Index des règles dynamiques"
+summary: >
+  Ce fichier catalogue les règles de gouvernance, de nommage, de templates et de critères
+  d’acceptation disponibles dans ARKA_OS. Chaque entrée renvoie vers une référence
+  exacte (file path + section) et indique la version minimale requise. Il sert de point
+  d’entrée aux agents pour récupérer uniquement les règles nécessaires, sans charger
+  l’ensemble de la constitution.
+
+rules:
+  path_templates:
+    feature_dir: { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir", version: ">=1.1.0" }
+    epic_dir:    { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir",    version: ">=1.1.0" }
+    us_dir:      { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir",      version: ">=1.1.0" }
+    ticket_dir:  { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir",  version: ">=1.1.0" }
+  naming_patterns:
+    feature_regex: { ref: "ARKORE09-NAMING-PATTERNS:regex.feature", version: ">=1.0.0" }
+    epic_regex:    { ref: "ARKORE09-NAMING-PATTERNS:regex.epic",    version: ">=1.0.0" }
+    us_regex:      { ref: "ARKORE09-NAMING-PATTERNS:regex.user_story", version: ">=1.0.0" }
+    ticket_regex:  { ref: "ARKORE09-NAMING-PATTERNS:regex.ticket",  version: ">=1.0.0" }
+  templates:
+    feature_readme: { ref: "ARKORE13-TEMPLATES:feature.readme", version: ">=1.0.0" }
+    epic_readme:    { ref: "ARKORE13-TEMPLATES:epic.readme",    version: ">=1.0.0" }
+    us_readme:      { ref: "ARKORE13-TEMPLATES:us.readme",      version: ">=1.0.0" }
+    ticket_work:    { ref: "ARKORE13-TEMPLATES:ticket.work",    version: ">=1.0.0" }
+  acceptance_criteria:
+    default: { ref: "ARKORE05-EXECUTION-SPECS:acceptance", version: ">=1.0.0" }
+  workflows:
+    feature_creation: { ref: "ARKORE04-WORKFLOWS:workflows.feature_creation", version: ">=1.0.0" }
+    epic_creation:    { ref: "ARKORE04-WORKFLOWS:workflows.epic_creation",    version: ">=1.0.0" }
+    review_cycle:     { ref: "ARKORE04-WORKFLOWS:workflows.review_cycle",     version: ">=1.0.0" }
+
+provides: ["rules"]
+change_policy: { compatibility: semver }

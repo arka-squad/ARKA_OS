@@ -1,0 +1,67 @@
+id: ARKORE00-INDEX
+version: 1.0.0
+registry:
+  ARKORE01-HIERARCHY:
+    file: bricks/ARKORE01-HIERARCHY.yaml
+    version: 1.0.0
+    exports: [roles, authority_levels, reporting]
+  ARKORE02-GLOBAL-RULES:
+    file: bricks/ARKORE02-GLOBAL-RULES.yaml
+    version: 1.0.0
+    exports: [principles, governance_pillars, emergency]
+  ARKORE03-TEAMS-CLAUDE:
+    file: bricks/ARKORE03-TEAMS-CLAUDE.yaml
+    version: 1.0.0
+    exports: [team, limitations, assignment]
+  ARKORE04-WORKFLOWS:
+    file: bricks/ARKORE04-WORKFLOWS.yaml
+    version: 1.0.0
+    exports: [workflows, states]
+  ARKORE05-EXECUTION-SPECS:
+    file: bricks/ARKORE05-EXECUTION-SPECS.yaml
+    version: 1.0.0
+    exports: [metrics, acceptance, security_baseline]
+  ARKORE06-CONTROL-MATRICES:
+    file: bricks/ARKORE06-CONTROL-MATRICES.yaml
+    version: 1.0.0
+    exports: [authority_matrix, escalation_matrix, nomenclature_matrix, evidence_matrix, performance_matrix, gate]
+  ARKORE07-ARCHIVISTE-MODULE:
+    file: bricks/ARKORE07-ARCHIVISTE-MODULE.yaml
+    version: 1.0.0
+    exports: [org, isolation, archive]
+  ARKORE08-PATHS-GOVERNANCE:
+    file: bricks/ARKORE08-PATHS-GOVERNANCE.yaml
+    version: 1.1.0
+    exports: [repo_layout, paths, path_templates, routing, memory_isolation]
+  ARKORE09-NAMING-PATTERNS:
+    file: bricks/ARKORE09-NAMING-PATTERNS.yaml
+    version: 1.0.0
+    exports: [patterns, regex, structure]
+  ARKORE12-ACTION-KEYS:
+    file: bricks/ARKORE12-ACTION-KEYS.yaml
+    version: 1.3.2
+    exports: [action_keys, io_contracts, prompt_macros]
+  ARKORE13-TEMPLATES:
+    file: bricks/ARKORE13-TEMPLATES.yaml
+    version: 1.0.0
+    exports: [templates]
+  ARKORE14-MEMORY-OPS:
+    file: bricks/ARKORE14-MEMORY-OPS.yaml
+    version: 1.0.0
+    exports: [schema, storage, operations, hooks, retention]  
+  ARKORE15-AGP-REACTIVE-CONTROL:
+  file: bricks/ARKORE15-AGP-REACTIVE-CONTROL.yaml
+  version: 1.0.0
+  exports: [runtime, events, zones, action_map]
+  ARKORE16-EVENT-BUS:
+    file: bricks/ARKORE16-EVENT-BUS.yaml
+    version: 1.0.0
+    exports: [topics, schemas, subscriptions, dispatch, instrumentation]
+  
+  
+contracts:
+  invariants:
+    - "templates are content-only (no rules)"
+  schema: "jsonschema://arka/templates/v1"
+change_policy:
+  compatibility: semver

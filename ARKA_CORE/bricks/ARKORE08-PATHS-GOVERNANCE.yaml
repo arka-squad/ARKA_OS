@@ -1,0 +1,111 @@
+id: ARKORE08-PATHS-GOVERNANCE
+version: 1.1.0
+title: "Chemins, routes & organisation du repo"
+summary: >
+  Structure des répertoires, règles de routage (création/placement des artefacts),
+  isolation mémoire et conventions d’emplacement des fichiers.
+maintainers: ["agp"]
+sources:
+  - "08-chemins-gouvernance-fondamentaux.md"
+  - "chaine-de-valeur-fonctionnel-exemple.md"
+exports:
+  repo_layout:
+    tree:
+      rules/: { desc: "Constitution & briques ARKORE*.yaml" }
+      features/: { desc: "Unités métier livrables (FEAT-*)" }
+      archives/: { desc: "Artefacts figés par l’Archiviste" }
+      rollback/: { desc: "Snapshots & migrations de retour arrière" }
+      .mem/: { desc: "Espaces mémoire isolés par équipe/agent" }
+    ownership:
+      rules/: ["agp"]
+      features/: ["pmo", "execution_agents"]
+      archives/: ["archiviste"]
+      rollback/: ["pmo"]
+      .mem/: ["agp", "pmo"]
+  paths:
+    rules_root: "rules/"
+    features_root: "features/"
+    epics_root: "features/{feature}/epics/"
+    user_stories_root: "features/{feature}/epics/{epic}/US/"
+    tickets_root: "features/{feature}/epics/{epic}/US/{us}/tickets/"
+    evidence_root: "features/{feature}/epics/{epic}/US/{us}/evidence/"
+    archives_root: "archives/"
+    rollback_snapshots: "rollback/snapshots/"
+    rollback_migrations: "rollback/migrations/"
+  path_templates:
+    feature_dir: "features/${featureId}-${kebab_title}/"
+    epic_dir: "features/${featureId}-${kebab_feature}/epics/${epicId}-${kebab_title}/"
+    us_dir: "features/${featureId}-${kebab_feature}/epics/${epicId}-${kebab_epic}/US/${usId}-${kebab_title}/"
+    ticket_dir: "features/${featureId}-${kebab_feature}/epics/${epicId}-${kebab_epic}/US/${usId}-${kebab_us}/tickets/${ticketId}/"
+    evidence_files:
+      summary_ref: "ARKORE09-NAMING-PATTERNS:patterns.evidence.summary"
+      test_report_ref: "ARKORE09-NAMING-PATTERNS:patterns.evidence.test_report"
+      perf_report_ref: "ARKORE09-NAMING-PATTERNS:patterns.evidence.perf_report"
+  memory_isolation:
+    claude: ".mem/claude/"
+    codex: ".mem/codex/"
+    merlin: ".mem/merlin/"
+  routing:
+    rules:
+      on_new_feature:
+        create:
+          - ${feature_dir}
+          - ${feature_dir}epics/
+          - ${feature_dir}README.md
+        require:
+          - "name matches ARKORE09-NAMING-PATTERNS:regex.feature"
+      on_new_epic:
+        create:
+          - ${epic_dir}
+          - ${epic_dir}US/
+          - ${epic_dir}README.md
+        require:
+          - "name matches ARKORE09-NAMING-PATTERNS:regex.epic"
+      on_new_user_story:
+        create:
+          - ${us_dir}
+          - ${us_dir}evidence/
+          - ${us_dir}tickets/
+          - ${us_dir}README.md
+        require:
+          - "name matches ARKORE09-NAMING-PATTERNS:regex.user_story"
+      on_new_ticket:
+        create:
+          - ${ticket_dir}
+          - ${ticket_dir}WORK.md
+          - ${ticket_dir}.todo.md
+        require:
+          - "name matches ARKORE09-NAMING-PATTERNS:regex.ticket"
+      on_close_ticket:
+        move:
+          - src: ${ticket_dir}
+            dst: "${us_dir}evidence/"
+            keep: ["*_SUMMARY.md", "*_TESTS.md", "*_PERF.md", "approvals.json"]
+  globs:
+    docs: ["**/*.md", "**/*.mdx"]
+    configs: ["**/*.yaml", "**/*.yml", "**/*.json"]
+    code: ["**/*.py", "**/*.ts", "**/*.js", "**/*.sh"]
+    secrets_forbidden: ["**/*.pem", "**/*.key", "**/.env*"]
+  validations:
+    filename_policy:
+      no_spaces: true
+      allowed_charset: "[a-z0-9-_.]"
+      case: "lower + prefixes (FEAT/EPIC/US/TCK)"
+    structure_policy:
+      max_depth_from_us: 4
+      required_files_in_us: ["README.md"]
+    naming_refs:
+      feature_regex_ref: "ARKORE09-NAMING-PATTERNS:regex.feature"
+      epic_regex_ref: "ARKORE09-NAMING-PATTERNS:regex.epic"
+      us_regex_ref: "ARKORE09-NAMING-PATTERNS:regex.user_story"
+      ticket_regex_ref: "ARKORE09-NAMING-PATTERNS:regex.ticket"
+provides: ["repo_layout", "paths", "path_templates", "routing", "memory_isolation"]
+requires: ["ARKORE09-NAMING-PATTERNS@>=1.0.0"]
+contracts:
+  invariants:
+    - "all roots end with '/'"
+    - "no filename contains spaces"
+    - "routing rules reference regex from ARKORE09 only (no local duplicates)"
+  schema: "jsonschema://arka/paths-governance/v2"
+change_policy:
+  compatibility: semver

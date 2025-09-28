@@ -1,0 +1,32 @@
+id: ARKPR08-PROFILES-CATALOG
+version: 1.1.0
+title: "Profils — Catalogue de types (mapping droits + limites)"
+exports:
+  profiles:
+    technical-architect:            { rights: architect_rights,           limits: moderate, tags: [architecture, structure, acceptance] }
+    lead-dev-batisseur:             { rights: lead_dev_rights,            limits: strict,   tags: [delivery, tickets, e2e] }
+    devops-guardian:                { rights: devops_rights,              limits: strict,   tags: [ci-cd, ops, delivery] }
+    ux-ui-design-guardian:          { rights: ux_guardian_rights,         limits: moderate, tags: [ux, validation] }
+    archivist:                      { rights: archivist_rights,           limits: moderate, tags: [archive, knowledge] }
+    arka-archivist-orchestrator:    { rights: archivist_rights,           limits: moderate, tags: [archivist, orchestrator] }
+    arka-product-manager-officer:   { rights: pmo_rights,                 limits: moderate, tags: [pmo, planning, governance] }
+    arka-scribe:                    { rights: scribe_rights,              limits: moderate, tags: [scribe, documentation, evidence] }
+    market-research-specialist:     { rights: market_research_rights,     limits: moderate, tags: [research, market, discovery] }
+    mission-qualifier:              { rights: mission_qualifier_rights,   limits: moderate, tags: [mission, triage, ingest] }
+    outreach-strategist:            { rights: outreach_rights,            limits: moderate, tags: [outreach, comms, external] }
+    agent-creator-client:           { rights: agent_creator_rights,       limits: moderate, tags: [agents, profiles, bootstrap] }
+    agp-architecte-gouvernance-produit: { rights: agp_rights,            limits: moderate, tags: [governance, agp, adr, labels] }
+    fsx-extreme-fullstack:          { rights: fsx_fullstack_rights,       limits: emergency, tags: [emergency, unblocker, incident] }
+    pipeline-tracker:               { rights: pipeline_tracker_rights,    limits: moderate, tags: [pipeline, reporting] }
+    positioning-expert:             { rights: positioning_expert_rights,  limits: moderate, tags: [positioning, messaging] }
+    qa-testeur:                     { rights: qa_rights,                  limits: strict,   tags: [qa, tests, bugs] }
+    security-compliance-architect:  { rights: security_compliance_architect_rights, limits: moderate, tags: [security, compliance] }
+    agp:
+      right_ref: ARKPR05-RIGHTS:agp_rights
+      action_sets: [quality_ops, workflow_ops, review_ops]
+contracts:
+  invariants:
+    - "rights exist in ARKPR05"
+    - "limits exist in ARKPR06"
+requires: ["ARKPR05-RIGHTS@>=1.2.0","ARKPR06-LIMITS@>=1.1.0"]
+change_policy: { compatibility: semver }

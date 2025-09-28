@@ -1,0 +1,31 @@
+id: ARKORE02-GLOBAL-RULES
+version: 1.0.0
+title: "Principes & règles globales"
+summary: >
+  Philosophie, règles transverses, isolation, et procédures d’urgence.
+maintainers: ["agp"]
+sources:
+  - "02-principes-regles-globales.md"
+exports:
+  principles:
+    - "Clarté avant tout (anti-ambiguïté)."
+    - "Modularité par défaut (briques indépendantes)."
+    - "Penser à l’échec (résilience & garde-fous)."
+    - "Explicite > Implicite (contrats, permissions, workflows)."
+  governance_pillars: ["security", "quality", "velocity"]
+  isolation:
+    archiviste: "strict"
+    memory: "par équipe et par brique"
+  emergency:
+    owner_bypass: true
+    conditions: ["incident_critique", "risque_legal", "exposition_donnee"]
+    audit_log_required: true
+provides: ["principles", "isolation", "emergency"]
+requires: ["ARKORE01-HIERARCHY@>=1.0.0"]
+contracts:
+  invariants:
+    - "owner_bypass requires audit log"
+    - "no governance detail duplicates keys from ARKORE06 (use refs)"
+  schema: "jsonschema://arka/global-rules/v1"
+change_policy:
+  compatibility: semver

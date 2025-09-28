@@ -1,0 +1,20 @@
+id: ARKPR03-ACTION-SETS
+version: 1.2.0
+title: "Profils — Sets d'actions (réfs ARKORE12)"
+exports:
+  action_sets:
+    create_structure:   [FEATURE_CREATE, EPIC_CREATE, US_CREATE]
+    ticket_ops:         [TICKET_CREATE, TICKET_CLOSE]
+    bug_ticket_ops:     [TICKET_CREATE]            # QA peut créer, pas forcément fermer
+    control_ops:        [DELIVERY_SUBMIT, MISSION_INGEST]
+    quality_ops:        [VALIDATE_NAMING, ARCHIVE_CAPTURE]
+    ux_ops:             [VALIDATE_NAMING]
+    archive_ops:        [ARCHIVE_CAPTURE]
+    # Ajout pour les workflows et revues croisées
+    workflow_ops:       [WORKFLOW_PLAN]
+    review_ops:         [REVIEW_DELIVERABLE]
+contracts:
+  invariants:
+    - "every item is a valid ARKORE12 action_key"
+requires: ["ARKORE12-ACTION-KEYS@>=1.3.2"]
+change_policy: { compatibility: semver }

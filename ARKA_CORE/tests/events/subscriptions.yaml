@@ -1,0 +1,7 @@
+test: subscriptions_valid
+assert:
+  - all_subscriptions_on_declared_topics: true
+  - all_from_refs_resolve: true
+  - sample_dispatch:
+      event: MEMORY_UPDATED
+      expect: { using: local, run: "on_memory_update.sh" }

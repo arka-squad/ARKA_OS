@@ -1,0 +1,17 @@
+# Pack d'abonnements externes (ajouté à l'assemblage via override)
+override:
+  ARKORE16-EVENT-BUS:
+    dispatch:
+      local:
+        base_dir: "scripts/handlers/"
+    subscriptions:
+      - on: US_CREATED
+        using: local
+        run: "us_created__issue_links.js"
+        args: ["--provider", "github"]
+      - on: OWNER_CONFIRMATION_REQUESTED
+        using: webhook
+        run: "${SLACK_WEBHOOK}"
+      - on: MEMORY_UPDATED
+        using: local
+        run: "memory_updated__sync_embeddings.sh"

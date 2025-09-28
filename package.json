@@ -1,0 +1,10 @@
+{
+  "name": "arka_os",
+  "private": true,
+  "scripts": {
+    "build:ps": "pwsh -File bin/os-build.ps1",
+    "build:sh": "bash bin/os-build.sh",
+    "run:ps":   "pwsh -File bin/os-run.ps1",
+    "run:sh":   "bash bin/os-run.sh"
+  }
+}

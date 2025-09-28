@@ -1,0 +1,26 @@
+id: ARKAA08-WAKEUP-LEAD_DEV_BATISSEUR
+version: 1.0.0
+agent_id: arka-agent04-lead-dev-batisseur
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.lead-dev-batisseur
+capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.lead-dev-batisseur
+keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+memory:
+  dir: .mem/lead-dev-batisseur/
+  index: .mem/lead-dev-batisseur/index.json
+context_refs:
+  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
+  default_intent: TICKET_CREATE
+rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
+rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
+available_intents:
+  - TICKET_CREATE
+  - PLAN_WORKFLOW
+  - REVIEW_DELIVERABLE
+guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
+contracts:
+  invariants:
+    - resolves(use_profile_ref)
+    - resolves(capabilities_ref)
+    - resolves(keys_catalog_ref)

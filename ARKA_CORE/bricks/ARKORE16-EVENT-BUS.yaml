@@ -1,0 +1,94 @@
+id: ARKORE16-EVENT-BUS
+version: 1.0.0
+title: "Event Bus & Subscriptions"
+summary: >
+  Taxonomie d’événements, schémas de payload, dispatch local/webhook et abonnements
+  vers des scripts. Instrumente ARKORE12/14/15 sans duplication.
+maintainers: ["agp", "pmo"]
+sources: ["04-processus-workflows.md", "14-memory-ops (exports)", "15-agp-reactive-control (exports)"]
+exports:
+  topics:
+    core:
+      DELIVERY_RECEIVED: { from: "ARKORE15.events.DELIVERY_RECEIVED" }
+      AGP_ACK_SENT:      { from: "ARKORE15.action_map.ACK" }
+      CONTROL_EVALUATED: { from: "ARKORE15.action_map.CONTROL_EVALUATE" }
+      MISSION_RETURN_ISSUED: { from: "ARKORE15.action_map.AGP_MISSION_RETURN" }
+      OWNER_CONFIRMATION_REQUESTED: { from: "ARKORE15.action_map.OPTIONAL_OWNER_CONFIRM" }
+      MEMORY_UPDATED:    { from: "ARKORE14.hooks.post_action" }
+      MISSION_INGESTED:  { from: "ARKORE14.operations.MISSION_INGEST" }
+    creation:
+      FEATURE_CREATED: { from: "ARKORE12.action_keys.FEATURE_CREATE (post)" }
+      EPIC_CREATED:    { from: "ARKORE12.action_keys.EPIC_CREATE (post)" }
+      US_CREATED:      { from: "ARKORE12.action_keys.US_CREATE (post)" }
+      TICKET_CREATED:  { from: "ARKORE12.action_keys.TICKET_CREATE (post)" }
+      TICKET_CLOSED:   { from: "ARKORE12.action_keys.TICKET_CLOSE (post)" }
+    workflow:
+      STATE_CHANGED:
+        from: "ARKORE04.workflows.* transitions"
+        payload_keys: [prev, next, via, scope]
+      GATE_PASSED:  { from: "ARKORE04.workflows.agp_gate success" }
+      GATE_REJECTED: { from: "ARKORE04.workflows.agp_gate reject" }
+    risk:
+      ESCALATION_RAISED: { from: "ARKORE06.escalation_matrix" }
+      ARCHIVE_CAPTURED:  { from: "ARKORE07.archive.handoff" }
+  schemas:
+    default_payload:
+      fields:
+        - { key: ts, type: iso8601 }
+        - { key: event, type: string }
+        - { key: profile, type: string }
+        - { key: source_brick, type: string }
+        - { key: actor?, type: string }
+        - { key: scope?, type: object, keys: [featureId, epicId, usId, ticketId] }
+        - { key: details?, type: object }
+        - { key: severity?, type: string }
+    memory_update:
+      extends: default_payload
+      required: [event, ts, source_brick, details]
+  dispatch:
+    mode: "multi"               # any of: local, webhook, stdout; multi = any subset
+    local:
+      shell: "/bin/bash"
+      base_dir: "scripts/"
+      env_passthrough: ["ARKA_PROFILE", "CI", "GIT_COMMIT"]
+      concurrency: 4
+      retry: { max: 2, backoff: "200ms * 2^n" }
+    webhook:
+      endpoint_env: "ARKA_EVENT_WEBHOOK"  # URL dans env
+      method: POST
+      headers: { "Content-Type": "application/json" }
+      retry: { max: 3, backoff: "500ms * 2^n" }
+    stdout: { enabled: true }
+  subscriptions:
+    - on: MEMORY_UPDATED
+      using: local
+      run: "on_memory_update.sh"
+      args: ["--scope", "${scope.usId:-}" ]
+    - on: DELIVERY_RECEIVED
+      using: local
+      run: "ci/validate_delivery.py"
+      args: ["--severity", "S2"]
+    - on: OWNER_CONFIRMATION_REQUESTED
+      using: webhook
+      run: "${ARKA_EVENT_WEBHOOK}"
+    - on: STATE_CHANGED
+      using: stdout
+      run: "echo"
+  instrumentation:
+    wrap_action_keys_pre_post: true
+    map:
+      US_CREATE: { pre: "ACTION.US_CREATE.START", post: "US_CREATED" }
+      EPIC_CREATE: { pre: "ACTION.EPIC_CREATE.START", post: "EPIC_CREATED" }
+      FEATURE_CREATE: { pre: "ACTION.FEATURE_CREATE.START", post: "FEATURE_CREATED" }
+      TICKET_CREATE: { pre: "ACTION.TICKET_CREATE.START", post: "TICKET_CREATED" }
+      TICKET_CLOSE: { pre: "ACTION.TICKET_CLOSE.START", post: "TICKET_CLOSED" }
+provides: ["topics", "schemas", "subscriptions", "dispatch", "instrumentation"]
+requires: ["ARKORE12-ACTION-KEYS@>=1.2.0", "ARKORE14-MEMORY-OPS@>=1.0.0", "ARKORE15-AGP-REACTIVE-CONTROL@>=1.0.0", "ARKORE04-WORKFLOWS@>=1.0.0", "ARKORE06-CONTROL-MATRICES@>=1.0.0", "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0"]
+contracts:
+  invariants:
+    - "all 'from' refs resolve"
+    - "every subscription 'on' is a declared topic"
+    - "dispatch.mode in ['local','webhook','stdout','multi']"
+  schema: "jsonschema://arka/event-bus/v1"
+change_policy:
+  compatibility: semver

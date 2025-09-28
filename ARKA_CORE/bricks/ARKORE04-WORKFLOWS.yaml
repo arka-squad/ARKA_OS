@@ -1,0 +1,93 @@
+id: ARKORE04-WORKFLOWS
+version: 1.0.0
+title: "Workflows d’orchestration"
+summary: >
+  Flux nominaux, décisions et références aux critères centralisés.
+maintainers: ["pmo", "agp"]
+sources:
+  - "04-processus-workflows.md"
+exports:
+  states: ["requested", "gated", "in_progress", "review", "done", "archived", "rejected"]
+  workflows:
+    task_lifecycle:
+      start: "requested"
+      transitions:
+        - from: "requested"
+          to: "gated"
+          via: "agp_gate"
+        - from: "gated"
+          to: "in_progress"
+          via: "pmo_dispatch"
+        - from: "in_progress"
+          to: "review"
+          via: "pmo_review"
+        - from: "review"
+          to: ["done", "rejected"]
+          via: "agp_validation"
+        - from: "done"
+          to: "archived"
+          via: "archiviste_capture"
+    agp_gate:
+      authority_ref: "ARKORE01-HIERARCHY:roles.agp"
+      criteria_ref: "ARKORE06-CONTROL-MATRICES:gate.criteria"
+      outputs: ["scope_class", "risk_level", "acceptance_ref"]
+    pmo_execution:
+      scope_ref: "ARKORE06-CONTROL-MATRICES:authority_matrix.pmo_limitations"
+      assignment_ref: "ARKORE03-TEAMS-CLAUDE:assignment.logic"
+      parallelization:
+        standard: false
+        complex: true
+        critical: true
+    validation:
+      acceptance_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
+    archive:
+      handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
+
+    # Nouveau workflow de création de feature
+    feature_creation:
+      sequence:
+        - agp_creates_feature
+        - pmo_creates_epics
+        - pmo_creates_user_stories
+        - pmo_assigns_tickets
+      handoffs:
+        - "agp → pmo"
+        - "pmo → lead_dev"
+        - "lead_dev → qa"
+      validations:
+        - "evidence_pack_complete"
+        - "nomenclature_ok"
+
+    # Nouveau workflow de création d’epic
+    epic_creation:
+      sequence:
+        - agp_creates_epic
+        - pmo_creates_user_stories
+        - pmo_assigns_tickets
+      handoffs:
+        - "agp → pmo"
+        - "pmo → lead_dev"
+      validations:
+        - "nomenclature_ok"
+
+    # Workflow générique de revue et amélioration de livrable (ping-pong)
+    review_cycle:
+      sequence:
+        - draft
+        - review
+        - improve
+        - validate
+      handoffs:
+        - "author → reviewer"
+        - "reviewer → author"
+        - "author → agp"
+      states: ["draft", "review", "improve", "validate", "accepted"]
+provides: ["workflows", "states"]
+requires: ["ARKORE01-HIERARCHY@>=1.0.0", "ARKORE03-TEAMS-CLAUDE@>=1.0.0", "ARKORE05-EXECUTION-SPECS@>=1.0.0", "ARKORE06-CONTROL-MATRICES@>=1.0.0", "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0"]
+contracts:
+  invariants:
+    - "agp_gate precedes pmo_execution in task_lifecycle"
+    - "no local gate criteria (use criteria_ref only)"
+  schema: "jsonschema://arka/workflows/v1"
+change_policy:
+  compatibility: semver

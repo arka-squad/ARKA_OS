@@ -1,0 +1,88 @@
+id: ARKORE15-AGP-REACTIVE-CONTROL
+version: 1.0.0
+title: "Boucles réactives AGP (sans pause)"
+summary: >
+  Politique temps réel de l’AGP pour traiter une livraison: accusé immédiat, contrôle,
+  retour d’ordre de mission au PMO, et escalade au Owner si confirmation requise — le tout
+  sans bloquer le flux (no-pause). Zones modifiables pour un tuning local.
+maintainers: ["agp"]
+sources: ["04-processus-workflows.md", "05-specifications-execution.md", "06-matrices-controle-sections-critiques.md"]
+exports:
+  runtime:
+    pause_on_delivery: false            # invariant: l’AGP ne met jamais en pause le système
+    ack_strategy: "immediate"           # envoyer ACK < 2s
+    control_mode: "non_blocking"        # contrôle s’exécute et publie les ordres sans bloquer
+  events:
+    DELIVERY_RECEIVED:
+      triggers: ["from_pmo", "from_execution"]
+      actions: ["ACK", "CONTROL_EVALUATE", "AGP_MISSION_RETURN", "OPTIONAL_OWNER_CONFIRM"]
+  zones:                                # 🔧 ZONES MODIFIABLES (overrides permis par profil)
+    Z1_ack:
+      overridable: true
+      policy:
+        ack_template: "AGP: Delivery received for ${scope} — control in progress"
+        max_latency_ref: "ARKORE06-CONTROL-MATRICES:performance_matrix.budgets.chat_ttft"
+    Z2_control_checks:
+      overridable: true
+      policy:
+        checks:
+          - name: "acceptance_minimum"
+            ref: "ARKORE05-EXECUTION-SPECS:acceptance"
+          - name: "evidence_level"
+            ref: "ARKORE06-CONTROL-MATRICES:evidence_matrix.required_artifacts.S2"
+          - name: "perf_budget"
+            ref: "ARKORE06-CONTROL-MATRICES:performance_matrix.budgets"
+    Z3_mission_return:
+      overridable: true
+      policy:
+        template_ref: "ARKORE13-TEMPLATES:agp.mission_return"
+        dispatch_to: "pmo"
+        include: ["scope", "analysis", "decisions", "next_steps"]
+    Z4_owner_confirmation:
+      overridable: true
+      policy:
+        when:
+          severity_ref: "ARKORE06-CONTROL-MATRICES:escalation_matrix.levels.S1"
+          condition: "missing_critical_evidence or high_risk_change"
+        template_ref: "ARKORE13-TEMPLATES:agp.owner_confirmation"
+        dispatch_to: "owner"
+  action_map:
+    ACK:
+      type: "notify"
+      channel: "pmo"
+      message_from: "zones.Z1_ack.policy.ack_template"
+      post: ["ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"]
+    CONTROL_EVALUATE:
+      type: "evaluate"
+      uses: [
+        "zones.Z2_control_checks.policy.checks[acceptance_minimum]",
+        "zones.Z2_control_checks.policy.checks[evidence_level]",
+        "zones.Z2_control_checks.policy.checks[perf_budget]"
+      ]
+      post: ["ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"]
+    AGP_MISSION_RETURN:
+      type: "notify"
+      channel: "pmo"
+      template_ref: "zones.Z3_mission_return.policy.template_ref"
+      post: ["ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"]
+    OPTIONAL_OWNER_CONFIRM:
+      type: "conditional_notify"
+      condition_ref: "zones.Z4_owner_confirmation.policy.when"
+      template_ref: "zones.Z4_owner_confirmation.policy.template_ref"
+      channel: "owner"
+      post: ["ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"]
+provides: ["runtime", "events", "zones", "action_map"]
+requires: [
+  "ARKORE06-CONTROL-MATRICES@>=1.0.0",
+  "ARKORE05-EXECUTION-SPECS@>=1.0.0",
+  "ARKORE14-MEMORY-OPS@>=1.0.0",
+  "ARKORE13-TEMPLATES@>=1.1.0"
+]
+contracts:
+  invariants:
+    - "runtime.pause_on_delivery == false"
+    - "Z1_ack.policy.max_latency_ref resolves"
+    - "all actions define post -> MEMORY_UPDATE"
+  schema: "jsonschema://arka/agp-reactive-control/v1"
+change_policy:
+  compatibility: semver

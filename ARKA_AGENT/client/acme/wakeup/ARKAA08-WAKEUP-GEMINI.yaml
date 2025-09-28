@@ -1,0 +1,23 @@
+id: ARKAA08-WAKEUP-GEMINI
+version: 1.0.0
+agent_id: gemini-owner-sourcing
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.positioning-expert # ou profil dédié sourcing
+capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.gemini-owner-sourcing
+keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+memory:
+  dir: .mem/gemini/
+  index: .mem/gemini/index.json
+context_refs:
+  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+  research_policy_ref?: client/acme/policies/research.yaml # domaines autorisés, sources
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities]
+  default_intent: SOURCING
+guardrails:
+  web_access_allowed: true
+  cite_sources_required: true
+  memory_update_always: true
+contracts:
+  invariants:
+    - resolves(use_profile_ref)
+    - resolves(capabilities_ref)

@@ -1,0 +1,118 @@
+id: ARKPR05-RIGHTS
+version: 1.2.0
+title: "Profils — Bundles de droits (compose action_sets + path_sets + net)"
+exports:
+  rights:
+    agp_rights:
+      action_sets: [quality_ops, workflow_ops, review_ops]
+      allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    architect_rights:
+      action_sets: [create_structure, quality_ops]
+      allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    lead_dev_rights:
+      action_sets: [ticket_ops, quality_ops, control_ops]
+      allow_paths: [us_tickets_only, us_evidence_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    devops_rights:
+      action_sets: [control_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    ux_guardian_rights:
+      action_sets: [ux_ops]
+      allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    archivist_rights:
+      action_sets: [archive_ops]
+      allow_paths: [us_evidence_only, mem_only]
+      deny_paths:  [secrets]
+      net_access:  none
+
+    agp_rights:
+      action_sets: [control_ops, quality_ops]
+      allow_paths: [features_all, meta_adr, meta_reports_agp]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    fsx_fullstack_rights:
+      action_sets: [create_structure, ticket_ops, control_ops, quality_ops]
+      allow_paths: [features_all, us_tickets_only, us_evidence_only, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    pmo_rights:
+      # Le PMO peut créer la structure et orchestrer/planifier des workflows, mais ne produit pas directement les artefacts.
+      action_sets: [create_structure, quality_ops, workflow_ops, review_ops]
+      allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    scribe_rights:
+      action_sets: [quality_ops]
+      allow_paths: [us_evidence_only, features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    market_research_rights:
+      action_sets: [quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  full
+
+    mission_qualifier_rights:
+      action_sets: [control_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    outreach_rights:
+      action_sets: [quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  full
+
+    agent_creator_rights:
+      action_sets: [create_structure, quality_ops]
+      allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    qa_rights:
+      action_sets: [bug_ticket_ops, quality_ops]
+      allow_paths: [us_tickets_only, us_evidence_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    pipeline_tracker_rights:
+      action_sets: [control_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    positioning_expert_rights:
+      action_sets: [quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    security_compliance_architect_rights:
+      action_sets: [quality_ops]
+      allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+contracts:
+  invariants:
+    - "all referenced action_sets/path_sets exist in ARKPR03/04"
+requires: ["ARKPR03-ACTION-SETS@>=1.2.0","ARKPR04-PATH-SETS@>=1.2.0"]
+change_policy: { compatibility: semver }

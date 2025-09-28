@@ -1,0 +1,4 @@
+test: all_refs_resolve
+resolver: master-assembly.yaml
+profiles: ["default", "dev-light", "strict-security"]
+expect: true
