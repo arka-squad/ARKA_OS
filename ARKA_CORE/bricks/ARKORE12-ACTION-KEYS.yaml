@@ -1,0 +1,225 @@
+# ARKORE12 — Action Keys (version canonique)
+# Objectif: une API compacte pour LLMs. Les clés renvoient UNIQUEMENT des références
+# (paths, regex, templates, critères). Chaque clé déclenche MEMORY_UPDATE en post.
+
+id: ARKORE12-ACTION-KEYS
+version: 1.3.2
+title: "Clés d’action LLM (routage rapide)"
+summary: >
+  Interface compacte pour LLM: une clé d’action par cas d’usage (create feature/epic/US/ticket,
+  close ticket, delivery submit, mission ingest, validate naming, archive). Références-only.
+maintainers: ["agp", "pmo"]
+sources: [
+  "04-processus-workflows.md",
+  "08-chemins-gouvernance-fondamentaux.md",
+  "09-patterns-nommage-artefacts.md",
+  "05-specifications-execution.md"
+]
+
+exports:
+  io_contracts:
+    common_inputs:
+      featureId:   { type: string, example: "FEAT-12" }
+      epicId:      { type: string, example: "EPIC-FEAT-12-03" }
+      usId:        { type: string, example: "US-EPIC-12-03-07" }
+      ticketId:    { type: string, example: "TCK-US-12-03-07-01" }
+      title:       { type: string, example: "supporter l’export CSV" }
+      kebab_title: { type: string, rule: "lowercase + '-'" }
+    alias_inputs:           # compat: "order" == "ticket"
+      orderId -> ticketId
+      order   -> ticket
+    outputs:
+      dir: { type: path }
+      created_files:
+        type: list
+        items: path
+
+  intent_router:            # mapping intentions → clés canoniques
+    CREATE_FEATURE:    "FEATURE_CREATE"
+    CREATE_EPIC:       "EPIC_CREATE"
+    CREATE_USER_STORY: "US_CREATE"
+    CREATE_TICKET:     "TICKET_CREATE"
+    CLOSE_TICKET:      "TICKET_CLOSE"
+    RECEIVE_MISSION:   "MISSION_INGEST"
+    DELIVERY_SUBMIT:   "DELIVERY_SUBMIT"
+    # alias compat
+    ORDER_CREATE:      "TICKET_CREATE"
+    ORDER_CLOSE:       "TICKET_CLOSE"
+
+    # nouveaux intents pour la planification de workflow et la revue de livrables
+    PLAN_WORKFLOW:     "WORKFLOW_PLAN"
+    REVIEW_DELIVERABLE: "REVIEW_DELIVERABLE"
+
+  action_keys:
+    FEATURE_CREATE:
+      inputs: [featureId, title, kebab_title]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
+        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.feature"
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+      create:
+        dirs: ["${feature_dir}", "${feature_dir}epics/"]
+        files: ["${feature_dir}README.md"]
+      templates:
+        readme_ref: "ARKORE13-TEMPLATES:feature.readme"
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.feature"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    EPIC_CREATE:
+      inputs: [featureId, epicId, title, kebab_title]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.epic"
+        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.epic"
+      associations:
+        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
+      create:
+        dirs: ["${epic_dir}", "${epic_dir}US/"]
+        files: ["${epic_dir}README.md"]
+      templates:
+        readme_ref: "ARKORE13-TEMPLATES:epic.readme"
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.epic"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    US_CREATE:
+      inputs: [featureId, epicId, usId, title, kebab_title]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.user_story"
+        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.user_story"
+      associations:
+        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+        epic_dir_ref:    "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"
+        evidence_dir: "${us_dir}evidence/"
+        tickets_dir:  "${us_dir}tickets/"
+      create:
+        dirs: ["${us_dir}", "${us_dir}evidence/", "${us_dir}tickets/"]
+        files: ["${us_dir}README.md"]
+      templates:
+        readme_ref:     "ARKORE13-TEMPLATES:us.readme"
+        acceptance_ref: "ARKORE13-TEMPLATES:us.acceptance_checklist"
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.user_story"
+        - "structure_policy.required_files_in_us present"
+      link_specs:
+        acceptance_criteria_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    TICKET_CREATE:
+      inputs: [featureId, epicId, usId, ticketId, title, kebab_title]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.ticket"
+        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.ticket"
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"
+      create:
+        dirs: ["${ticket_dir}"]
+        files: ["${ticket_dir}WORK.md", "${ticket_dir}.todo.md"]
+      templates:
+        work_ref: "ARKORE13-TEMPLATES:ticket.work"
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.ticket"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    TICKET_CLOSE:
+      inputs: [featureId, epicId, usId, ticketId]
+      move:
+        src: "${ticket_dir}"
+        dst: "${us_dir}evidence/"
+        keep: ["*_SUMMARY.md", "*_TESTS.md", "*_PERF.md", "approvals.json"]
+      link_archive:
+        handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    DELIVERY_SUBMIT:
+      inputs: [featureId, epicId?, usId?, ticketId?, summary]
+      routes:
+        notify_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
+        control_ref:      "ARKORE15-AGP-REACTIVE-CONTROL:action_map.CONTROL_EVALUATE"
+        return_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.AGP_MISSION_RETURN"
+        owner_confirm_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.OPTIONAL_OWNER_CONFIRM"
+      flow:
+        steps: ["ACK", "CONTROL_EVALUATE", "AGP_MISSION_RETURN", "OPTIONAL_OWNER_CONFIRM"]
+      validations:
+        - "zones.Z1_ack.policy.max_latency_ref honored"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    MISSION_INGEST:
+      inputs: [mission_record]
+      ops:
+        - "ARKORE14-MEMORY-OPS:operations.MISSION_INGEST"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+
+    VALIDATE_NAMING:
+      inputs: [featureId?, epicId?, usId?, ticketId?]
+      checks:
+        feature: "ARKORE09-NAMING-PATTERNS:regex.feature"
+        epic:    "ARKORE09-NAMING-PATTERNS:regex.epic"
+        us:      "ARKORE09-NAMING-PATTERNS:regex.user_story"
+        ticket:  "ARKORE09-NAMING-PATTERNS:regex.ticket"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    ARCHIVE_CAPTURE:
+      inputs: [featureId, epicId, usId]
+      validations:
+        - "naming_refs.* resolve"
+        - "evidence_matrix for S2 includes 'trace' and 'review'"
+      handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    # Action pour planifier un workflow avec retour d’un plan structuré
+    WORKFLOW_PLAN:
+      inputs: [workflowName, scope?]
+      description: "Planifier un workflow inter-agents et retourner un schéma de plan structuré"
+      outputs:
+        plan: { type: json, description: "Schéma de plan avec étapes et rôles" }
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+    # Action pour permettre la revue d’un livrable par un agent critique
+    REVIEW_DELIVERABLE:
+      inputs: [deliverablePath, reviewer]
+      description: "Critiquer et proposer des améliorations sur un livrable donné"
+      outputs:
+        critique: { type: text, description: "Analyse et commentaires" }
+        suggestions: { type: list, items: text }
+      post: [ "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE" ]
+
+  prompt_macros:
+    minimal_steps:
+      US_CREATE:
+        - "Valider le nom via regex.user_story"
+        - "Construire ${us_dir} depuis path_templates.us_dir"
+        - "Créer dossiers evidence/ et tickets/"
+        - "Générer README.md via template us.readme"
+        - "Ajouter checklist acceptance (ref ARKORE05)"
+
+provides: ["action_keys", "io_contracts", "prompt_macros", "intent_router"]
+requires: [
+  "ARKORE08-PATHS-GOVERNANCE@>=1.1.0",
+  "ARKORE09-NAMING-PATTERNS@>=1.0.0",
+  "ARKORE05-EXECUTION-SPECS@>=1.0.0",
+  "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0",
+  "ARKORE13-TEMPLATES@>=1.0.0",
+  "ARKORE14-MEMORY-OPS@>=1.0.0",
+  "ARKORE15-AGP-REACTIVE-CONTROL@>=1.0.0"
+]
+contracts:
+  invariants:
+    - "every action_key defines post -> MEMORY_UPDATE"
+    - "DELIVERY_SUBMIT.flow[0] == 'ACK'"
+    - "only refs, no duplication of rules"
+    - "all *_ref resolve under enabled profile"
+    - "ORDER_* aliases map only to canonical TICKET_* keys"
+  schema: "jsonschema://arka/action-keys/v1"
+change_policy:
+  compatibility: semver
