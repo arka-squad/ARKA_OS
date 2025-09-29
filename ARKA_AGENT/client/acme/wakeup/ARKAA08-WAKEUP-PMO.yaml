@@ -1,55 +1,78 @@
+# ARKAA08-WAKEUP-PMO.yaml
 id: ARKAA08-WAKEUP-PMO
-version: 1.0.0
-agent_id: arka-product-manager-officer
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.arka-product-manager-officer
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.arka-product-manager-officer
+version: 2.0.0
+agent_id: arka-agent02-pmo-orchestrator
+
+
+# === CONTRÔLES STRICTS (NOUVEAU) ===
+loading_policy:
+  auto_resolve_refs: false      # Pas de chargement auto
+  forbidden_deep_scan: true     # INTERDIT de scanner
+  allowed_refs_only: true       # Seulement les refs déclarées
+
+access_controls:
+  repository_scan: forbidden
+  cross_agent_access: forbidden
+  fallback_on_missing: "STOP"   # Si ref manque → STOP
+
+validation:
+  require_explicit_intent: true
+  block_undeclared_actions: true
+  missing_ref_policy: "report_and_stop"
+
+# === SI RÉFÉRENCE MANQUE ===
+on_missing_reference:
+  action: "STOP"
+  message: "Reference ${ref} not found. Wake-up incomplete."
+  suggest: "Create missing reference or remove from wake-up"
+  
+# === RÉFÉRENCES (avec fallback) ===
+# Si ces refs n'existent pas → utiliser les valeurs inline
+project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
+fallback_context:
+  vision_produit: "À créer dans INPUT/"
+  roadmap: "À créer dans INPUT/"
+  
+rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version  
+fallback_rules:
+  version: "1.0.0"
+  guardrails: "standard"
+
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.pmo-orchestrator
+capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.pmo-orchestrator
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+
+
+rules_index_ref: ARKPR20-WAKEUP-POLICIES:exports.rules_index_ref
+guardrails_ref: ARKPR20-WAKEUP-POLICIES:exports.guardrails
+
+# === MÉMOIRE ===
 memory:
   dir: .mem/pmo/
   index: .mem/pmo/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
-  templates_provider_ref: ARKAA11-TEMPLATES-PROVIDER
-  experts_cards_dir: client/acme/experts/ # fiches YAML des sous-agents (liens)
-startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
-  default_intent: US_CREATE
-  dispatch_mode: subtasks_only # PMO ne code pas ; délègue aux sous-agents
-  delegation:
-    method: Task # Utiliser le Task tool pour déléguer
 
-# Référence centralisée de la version des règles dynamiques
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
-
-# Liste des intentions que le PMO est autorisé à initier.  US_CREATE reste l'intention
-# principale pour générer des user stories.  PLAN_WORKFLOW permet de planifier un
-# workflow inter‑agents et REVIEW_DELIVERABLE déclenche une étape de critique
-# croisée sur un livrable.  Ajouter d’autres clés ici permettra d’étendre son spectre
-# d’actions sans devoir modifier son comportement par défaut.
+# === INTENTS ===
 available_intents:
+  - FEATURE_CREATE
+  - EPIC_CREATE
   - US_CREATE
-  - PLAN_WORKFLOW
-  - REVIEW_DELIVERABLE
+  - WORKFLOW_PLAN
+  - REPORT_CREATE
+  
+include_common_intents_ref: ARKPR20-WAKEUP-POLICIES:exports.intents_common
 
-# Référence vers l’index des règles dynamiques (centralisé dans ARKPR20)
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
+# === CONTEXTE (références uniquement) ===
+context:
+  docs_ref:
+    vision_produit: ARKAA21-PROJECT-CONTEXT:vars.docs.vision_produit
+    roadmap: ARKAA21-PROJECT-CONTEXT:vars.docs.roadmap
+    plan_directeur: ARKAA21-PROJECT-CONTEXT:vars.docs.plan_directeur
+    
+  governance_ref: ARKAA21-PROJECT-CONTEXT:vars.governance
+  dor_dod_ref: ARKAA21-PROJECT-CONTEXT:vars.dor_dod
 
-# client/acme/wakeup/ARKAA08-WAKEUP-PMO.yaml  (ajouts)
-routes_catalog_ref: ARKORE08-PATHS-GOVERNANCE:path_templates
-routes:
-  feature_dir_ref: ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir
-  epic_dir_ref:    ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir
-  us_dir_ref:      ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir
-  ticket_dir_ref:  ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir
-  evidence_dir_ref: ARKORE08-PATHS-GOVERNANCE:path_templates.evidence_dir
-  reports_dir_ref:  ARKORE08-PATHS-GOVERNANCE:path_templates.reports_dir
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
-contracts:
-  invariants:
-    - resolves(routes_catalog_ref)
-    - resolves(routes.feature_dir_ref)
-    - resolves(routes.us_dir_ref)
-    - resolves(routes.ticket_dir_ref)
-    - resolves(use_profile_ref)
-    - resolves(capabilities_ref)
-    - resolves(keys_catalog_ref)
+# === STARTUP ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities]
+  default_intent: FEATURE_CREATE
+  dispatch_mode: orchestrator_only

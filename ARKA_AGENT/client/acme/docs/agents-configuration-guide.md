@@ -142,15 +142,6 @@ core_identity:
   mission: "{Mission principale}"
   scope: "{Périmètre d'action}"
 
-# === CAPACITÉS ===
-capabilities:
-  do:
-    - "{Action 1}"
-    - "{Action 2}"
-  dont:
-    - "{Interdiction 1}"
-    - "{Interdiction 2}"
-
 # === WORKFLOW ===
 workflow:
   input: "{Ce que l'agent reçoit}"

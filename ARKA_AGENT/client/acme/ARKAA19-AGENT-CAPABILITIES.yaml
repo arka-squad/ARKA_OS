@@ -28,13 +28,16 @@ exports:
       
     # === PMO ===
     arka-product-manager-officer:
-      use_profile: arka-product-manager-officer
+      use_profile: pmo-orchestrator
       permissions:
-        - "us:c"             # Créer US seulement
-        - "ticket:*"         # Tout sur tickets
-        - "document:cr"      # Create/Read documents
-        - "report:cr"        # Create/Read reports
-        - "-order"           # Pas d'ordres
+        - "feature:*"      # Gestion complète structure
+        - "epic:*"
+        - "us:*"
+        - "ticket:*"
+        - "document:cr"    # Création docs seulement
+        - "report:cr"
+        - "workflow:*"     # Orchestration workflows
+        - "-delete"        # Jamais de suppression
       default_map: US_CREATE
       
     # === LEAD DEV ===
@@ -45,6 +48,7 @@ exports:
         - "document:cru"     # Create/Read/Update docs
         - "-feature"         # Pas touche aux features
         - "-epic"            # Pas touche aux epics
+        - "us:*"             # Tout sur US
         - "-order"           # Pas d'ordres
       default_map: TICKET_CREATE
       
@@ -54,6 +58,7 @@ exports:
       permissions:
         - "document:*"       # Tous les docs techniques
         - "report:*"         # Tous les rapports
+        - "us:*"             # Tout sur US
         - "*:rs"             # Read + Status sur tout
         - "-create"          # Ne crée rien de structurel
       default_map: REPORT_CREATE
@@ -67,7 +72,7 @@ exports:
         - "document:cr"      # Create/Read docs de test
         - "-feature"         # Pas de structure
         - "-epic"
-        - "-us"
+        - "us:*"             # Tout sur US
       default_map: TICKET_CREATE
       
     # === ARCHIVISTE ===
