@@ -65,7 +65,6 @@ startup:
 # === INTENTS ===
 # prérequis selon mobligatoire
 orchestration_rules_ref: ARKORE17-ORCHESTRATION-RULES:exports  
-# Intents
 available_intents:
   - FEATURE_CREATE
   - EPIC_CREATE
