@@ -1,137 +1,338 @@
-# ARKORE12 — Action Keys (version canonique)
-# Objectif: une API compacte pour LLMs. Les clés renvoient UNIQUEMENT des références
-# (paths, regex, templates, critères). Chaque clé déclenche MEMORY_UPDATE en post.
+
+# ARKORE12 — Action Keys (version 2.1.0)
+# Objectif: exposer 96 actions normalisées via des ancres réutilisables
 
 id: ARKORE12-ACTION-KEYS
-version: 1.3.2
-title: "Clés d’action LLM (routage rapide)"
+version: 2.1.0
+title: "Clés d’action LLM (ensemble complet)"
 summary: >
-  Interface compacte pour LLM: une clé d’action par cas d’usage (create feature/epic/US/ticket,
-  close ticket, delivery submit, mission ingest, validate naming, archive). Références-only.
+  Ensemble complet de 96 actions structurées via ancres YAML pour couvrir la
+  structure projet, la gestion des livrables et la gouvernance. Chaque action
+  référence les briques ARKORE existantes (paths, patterns, event bus) et
+  déclenche les mises à jour mémoire.
 maintainers: ["agp", "pmo"]
-sources: [
-  "04-processus-workflows.md",
-  "08-chemins-gouvernance-fondamentaux.md",
-  "09-patterns-nommage-artefacts.md",
-  "05-specifications-execution.md"
-]
+sources:
+  - "04-processus-workflows.md"
+  - "05-specifications-execution.md"
+  - "08-chemins-gouvernance-fondamentaux.md"
+  - "09-patterns-nommage-artefacts.md"
 
 exports:
-  anchors:
-    post_memory_update: &post_memory_update
-      - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-    valid_exists_perms: &valid_exists_perms
-      - "filename_policy.no_spaces"
-      - "name matches regex.feature"
-    valid_exists_perms_updates: &valid_exists_perms_updates
-      - "filename_policy.no_spaces"
-      - "name matches regex.epic"
-    valid_exists_perms_structure: &valid_exists_perms_structure
-      - "filename_policy.no_spaces"
-      - "name matches regex.user_story"
-      - "structure_policy.required_files_in_us present"
-    valid_exists_perms_not_linked: &valid_exists_perms_not_linked
-      - "filename_policy.no_spaces"
-      - "name matches regex.ticket"
-    valid_delivery_ack_latency: &valid_delivery_ack_latency
-      - "zones.Z1_ack.policy.max_latency_ref honored"
-    valid_archive_capture_checks: &valid_archive_capture_checks
-      - "naming_refs.* resolve"
-      - "evidence_matrix for S2 includes 'trace' and 'review'"
-  io_contracts:
-    common_inputs:
-      featureId:   { type: string, example: "FEAT-12" }
-      epicId:      { type: string, example: "EPIC-FEAT-12-03" }
-      usId:        { type: string, example: "US-EPIC-12-03-07" }
-      ticketId:    { type: string, example: "TCK-US-12-03-07-01" }
-      title:       { type: string, example: "supporter l’export CSV" }
-      kebab_title: { type: string, rule: "lowercase + '-'" }
-    alias_inputs:           # compat: "order" == "ticket"
-      orderId -> ticketId
-      order   -> ticket
-    outputs:
-      dir: { type: path }
-      created_files:
-        type: list
-        items: path
+  action_templates:
+    base_create: &base_create
+      operation: CREATE
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex"
+        - "parent_exists:pass"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_CREATED"
 
-  intent_router:            # mapping intentions → clés canoniques
-    CREATE_FEATURE:    "FEATURE_CREATE"
-    CREATE_EPIC:       "EPIC_CREATE"
-    CREATE_USER_STORY: "US_CREATE"
-    CREATE_TICKET:     "TICKET_CREATE"
-    CLOSE_TICKET:      "TICKET_CLOSE"
-    RECEIVE_MISSION:   "MISSION_INGEST"
-    DELIVERY_SUBMIT:   "DELIVERY_SUBMIT"
-    # alias compat
-    ORDER_CREATE:      "TICKET_CREATE"
-    ORDER_CLOSE:       "TICKET_CLOSE"
+    base_read: &base_read
+      operation: READ
+      validations:
+        - "exists:pass"
+        - "permissions:read"
+      outputs:
+        content: { type: object }
+        metadata: { type: object }
+        path: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
-    # nouveaux intents pour la planification de workflow et la revue de livrables
-    PLAN_WORKFLOW:     "WORKFLOW_PLAN"
-    REVIEW_DELIVERABLE: "REVIEW_DELIVERABLE"
+    base_update: &base_update
+      operation: UPDATE
+      validations:
+        - "exists:pass"
+        - "permissions:update"
+        - "validate_updates:pass"
+      outputs:
+        updated: { type: object }
+        previous: { type: object }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_UPDATED"
+
+    base_delete: &base_delete
+      operation: DELETE
+      validations:
+        - "exists:pass"
+        - "permissions:delete"
+        - "no_dependencies:pass"
+      outputs:
+        deleted: { type: string }
+        archived_to: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_DELETED"
+
+    base_move: &base_move
+      operation: MOVE
+      validations:
+        - "exists:pass"
+        - "permissions:move"
+        - "target_valid:pass"
+        - "no_circular:pass"
+      outputs:
+        moved_from: { type: string }
+        moved_to: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_MOVED"
+
+    base_rename: &base_rename
+      operation: RENAME
+      validations:
+        - "exists:pass"
+        - "permissions:rename"
+        - "new_name_valid:pass"
+        - "no_conflicts:pass"
+      outputs:
+        old_id: { type: string }
+        new_id: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_RENAMED"
+
+    base_archive: &base_archive
+      operation: ARCHIVE
+      validations:
+        - "exists:pass"
+        - "permissions:archive"
+        - "ready_for_archive:pass"
+      handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
+      outputs:
+        archived_path: { type: string }
+        archive_id: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_ARCHIVED"
+
+    base_status: &base_status
+      operation: STATUS
+      validations:
+        - "exists:pass"
+        - "permissions:status"
+        - "valid_transition:pass"
+      outputs:
+        old_status: { type: string }
+        new_status: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.STATUS_CHANGED"
+
+    base_publish: &base_publish
+      operation: PUBLISH
+      validations:
+        - "exists:pass"
+        - "permissions:publish"
+        - "ready_to_publish:pass"
+        - "approval_received:pass"
+      outputs:
+        published_url: { type: string }
+        version: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.{TYPE}_PUBLISHED"
+
+  type_configs:
+    feature_cfg: &feature_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.features_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.feature"
+
+    epic_cfg: &epic_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.epics_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.epic"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.epic"
+
+    us_cfg: &us_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.user_stories_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.user_story"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.user_story"
+
+    ticket_cfg: &ticket_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.tickets_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.ticket"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.ticket"
+
+    document_cfg: &document_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.documents_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.document"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.document"
+
+    report_cfg: &report_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.reports_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.report"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.report"
+
+    analysis_cfg: &analysis_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.analysis_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.analysis"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.analysis"
+
+    plan_cfg: &plan_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.plans_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.plan"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.plan"
+
+    contract_cfg: &contract_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.contracts_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.contract"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.contract"
+
+    order_cfg: &order_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.governance.orders_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.order"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.order"
+      file_type: json
+
+    decision_cfg: &decision_cfg
+      path_ref: "ARKORE08-PATHS-GOVERNANCE:paths.governance.decisions_root"
+      pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.decision"
+      regex_ref: "ARKORE09-NAMING-PATTERNS:regex.decision"
 
   action_keys:
+    # === FEATURE ===
     FEATURE_CREATE:
+      <<: [*base_create, *feature_cfg]
       inputs: [featureId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.feature"
       paths:
         dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
+        regex_ref: "ARKORE09-NAMING-PATTERNS:regex.feature"
       create:
-        dirs: ["${feature_dir}", "${feature_dir}epics/"]
+        dirs: ["${feature_dir}", "${feature_dir}CR/", "${feature_dir}EPICS/", "${feature_dir}review-pass-agp/"]
         files: ["${feature_dir}README.md"]
       templates:
         readme_ref: "ARKORE13-TEMPLATES:feature.readme"
-      validations: *valid_exists_perms
-      post: *post_memory_update
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.feature"
+        - "parent_exists:pass"
 
+    FEATURE_READ:    { <<: [*base_read, *feature_cfg], inputs: [featureId] }
+    FEATURE_UPDATE:  { <<: [*base_update, *feature_cfg], inputs: [featureId, updates] }
+    FEATURE_DELETE:  { <<: [*base_delete, *feature_cfg], inputs: [featureId, reason] }
+    FEATURE_MOVE:    { <<: [*base_move, *feature_cfg], inputs: [featureId, destination] }
+    FEATURE_RENAME:  { <<: [*base_rename, *feature_cfg], inputs: [featureId, newId, newTitle] }
+    FEATURE_ARCHIVE: { <<: [*base_archive, *feature_cfg], inputs: [featureId] }
+    FEATURE_STATUS:  { <<: [*base_status, *feature_cfg], inputs: [featureId, status] }
+
+    # === EPIC ===
     EPIC_CREATE:
+      <<: [*base_create, *epic_cfg]
       inputs: [featureId, epicId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.epic"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.epic"
       associations:
         feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
       paths:
         dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
       create:
-        dirs: ["${epic_dir}", "${epic_dir}US/"]
+        dirs: ["${epic_dir}", "${epic_dir}CR/", "${epic_dir}US/"]
         files: ["${epic_dir}README.md"]
       templates:
         readme_ref: "ARKORE13-TEMPLATES:epic.readme"
-      validations: *valid_exists_perms_updates
-      post: *post_memory_update
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.epic"
+        - "parent_exists:pass"
 
-    US_CREATE:
-      inputs: [featureId, epicId, usId, title, kebab_title]
+    EPIC_READ:       { <<: [*base_read, *epic_cfg], inputs: [featureId, epicId] }
+    EPIC_UPDATE:     { <<: [*base_update, *epic_cfg], inputs: [featureId, epicId, updates] }
+    EPIC_DELETE:     { <<: [*base_delete, *epic_cfg], inputs: [featureId, epicId, reason] }
+    EPIC_MOVE:       { <<: [*base_move, *epic_cfg], inputs: [featureId, epicId, newFeatureId] }
+    EPIC_RENAME:     { <<: [*base_rename, *epic_cfg], inputs: [featureId, epicId, newId, newTitle] }
+    EPIC_ARCHIVE:    { <<: [*base_archive, *epic_cfg], inputs: [featureId, epicId] }
+    EPIC_STATUS:     { <<: [*base_status, *epic_cfg], inputs: [featureId, epicId, status] }
+
+    # === CHANGE REQUESTS ===
+    CR_CREATE:
+      inputs: [targetType, targetId, crId, title, date, description, featureId?, epicId?]
       naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.user_story"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.user_story"
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.change_request"
+        regex_ref: "ARKORE09-NAMING-PATTERNS:regex.change_request"
+      paths:
+        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_cr_dir"
+        epic_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_cr_dir"
+      templates:
+        cr_ref: "ARKORE13-TEMPLATES:change_request.default"
+      validations:
+        - "target_exists:pass"
+        - "naming_valid:pass"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.CR_CREATED"
+
+    CR_READ:
+      <<: *base_read
+      inputs: [targetType, targetId, crId, featureId?, epicId?]
+      paths:
+        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_cr_dir"
+        epic_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_cr_dir"
+
+    # === AGP REVIEWS ===
+    AGP_REVIEW_CREATE:
+      inputs: [featureId, date, status, comments, reviewer]
+      authority_required: ["agp"]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.agp_review"
+        regex_ref: "ARKORE09-NAMING-PATTERNS:regex.agp_review"
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_reviews_dir"
+      templates:
+        review_ref: "ARKORE13-TEMPLATES:agp.review"
+      validations:
+        - "feature_exists:pass"
+        - "status_valid:pass"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.AGP_REVIEW_CREATED"
+        - "ARKORE16-EVENT-BUS:emit.GATE_NOTIFY"
+
+    AGP_REVIEW_READ:
+      <<: *base_read
+      inputs: [featureId, reviewId]
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_reviews_dir"
+
+    # === USER STORY ===
+    US_CREATE:
+      <<: [*base_create, *us_cfg]
+      inputs: [featureId, epicId, usId, title, kebab_title]
       associations:
         feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"
-        epic_dir_ref:    "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
+        epic_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
       paths:
         dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"
         evidence_dir: "${us_dir}evidence/"
-        tickets_dir:  "${us_dir}tickets/"
+        tickets_dir: "${us_dir}tickets/"
       create:
         dirs: ["${us_dir}", "${us_dir}evidence/", "${us_dir}tickets/"]
         files: ["${us_dir}README.md"]
       templates:
-        readme_ref:     "ARKORE13-TEMPLATES:us.readme"
+        readme_ref: "ARKORE13-TEMPLATES:us.readme"
         acceptance_ref: "ARKORE13-TEMPLATES:us.acceptance_checklist"
-      validations: *valid_exists_perms_structure
       link_specs:
         acceptance_criteria_ref: "ARKORE05-EXECUTION-SPECS:acceptance"
-      post: *post_memory_update
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.user_story"
+        - "structure_policy.required_files_in_us present"
 
+    US_READ:         { <<: [*base_read, *us_cfg], inputs: [featureId, epicId, usId] }
+    US_UPDATE:       { <<: [*base_update, *us_cfg], inputs: [featureId, epicId, usId, updates] }
+    US_DELETE:       { <<: [*base_delete, *us_cfg], inputs: [featureId, epicId, usId, reason] }
+    US_MOVE:         { <<: [*base_move, *us_cfg], inputs: [featureId, epicId, usId, newEpicId] }
+    US_RENAME:       { <<: [*base_rename, *us_cfg], inputs: [featureId, epicId, usId, newId, newTitle] }
+    US_ARCHIVE:      { <<: [*base_archive, *us_cfg], inputs: [featureId, epicId, usId] }
+    US_STATUS:       { <<: [*base_status, *us_cfg], inputs: [featureId, epicId, usId, status] }
+
+    # === TICKET ===
     TICKET_CREATE:
+      <<: [*base_create, *ticket_cfg]
       inputs: [featureId, epicId, usId, ticketId, title, kebab_title]
-      naming:
-        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.ticket"
-        regex_ref:   "ARKORE09-NAMING-PATTERNS:regex.ticket"
       paths:
         dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"
       create:
@@ -139,8 +340,18 @@ exports:
         files: ["${ticket_dir}WORK.md", "${ticket_dir}.todo.md"]
       templates:
         work_ref: "ARKORE13-TEMPLATES:ticket.work"
-      validations: *valid_exists_perms_not_linked
-      post: *post_memory_update
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex.ticket"
+        - "parent_exists:pass"
+
+    TICKET_READ:     { <<: [*base_read, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId] }
+    TICKET_UPDATE:   { <<: [*base_update, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId, updates] }
+    TICKET_DELETE:   { <<: [*base_delete, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId, reason] }
+    TICKET_MOVE:     { <<: [*base_move, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId, newUsId] }
+    TICKET_RENAME:   { <<: [*base_rename, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId, newId, newTitle] }
+    TICKET_ARCHIVE:  { <<: [*base_archive, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId] }
+    TICKET_STATUS:   { <<: [*base_status, *ticket_cfg], inputs: [featureId, epicId, usId, ticketId, status] }
 
     TICKET_CLOSE:
       inputs: [featureId, epicId, usId, ticketId]
@@ -150,57 +361,231 @@ exports:
         keep: ["*_SUMMARY.md", "*_TESTS.md", "*_PERF.md", "approvals.json"]
       link_archive:
         handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
-      post: *post_memory_update
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.TICKET_CLOSED"
 
+    # === DOCUMENTS ===
+    DOCUMENT_CREATE:
+      <<: [*base_create, *document_cfg]
+      inputs: [documentId, type, title, kebab_title, content]
+    DOCUMENT_READ:    { <<: [*base_read, *document_cfg], inputs: [documentId] }
+    DOCUMENT_UPDATE:  { <<: [*base_update, *document_cfg], inputs: [documentId, updates] }
+    DOCUMENT_DELETE:  { <<: [*base_delete, *document_cfg], inputs: [documentId, reason] }
+    DOCUMENT_MOVE:    { <<: [*base_move, *document_cfg], inputs: [documentId, destination] }
+    DOCUMENT_RENAME:  { <<: [*base_rename, *document_cfg], inputs: [documentId, newId, newTitle] }
+    DOCUMENT_ARCHIVE: { <<: [*base_archive, *document_cfg], inputs: [documentId] }
+    DOCUMENT_STATUS:  { <<: [*base_status, *document_cfg], inputs: [documentId, status] }
+    DOCUMENT_PUBLISH: { <<: [*base_publish, *document_cfg], inputs: [documentId, version] }
+
+    # === REPORTS ===
+    REPORT_CREATE:
+      <<: [*base_create, *report_cfg]
+      inputs: [reportId, type, title, date, content]
+    REPORT_READ:     { <<: [*base_read, *report_cfg], inputs: [reportId] }
+    REPORT_UPDATE:   { <<: [*base_update, *report_cfg], inputs: [reportId, updates] }
+    REPORT_DELETE:   { <<: [*base_delete, *report_cfg], inputs: [reportId, reason] }
+    REPORT_MOVE:     { <<: [*base_move, *report_cfg], inputs: [reportId, destination] }
+    REPORT_RENAME:   { <<: [*base_rename, *report_cfg], inputs: [reportId, newId] }
+    REPORT_ARCHIVE:  { <<: [*base_archive, *report_cfg], inputs: [reportId] }
+    REPORT_STATUS:   { <<: [*base_status, *report_cfg], inputs: [reportId, status] }
+    REPORT_PUBLISH:  { <<: [*base_publish, *report_cfg], inputs: [reportId, channels] }
+
+    # === ANALYSIS ===
+    ANALYSIS_CREATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, scope, title, kebab_title, data]
+    ANALYSIS_READ:    { <<: [*base_read, *analysis_cfg], inputs: [analysisId] }
+    ANALYSIS_UPDATE:  { <<: [*base_update, *analysis_cfg], inputs: [analysisId, updates] }
+    ANALYSIS_DELETE:  { <<: [*base_delete, *analysis_cfg], inputs: [analysisId, reason] }
+    ANALYSIS_MOVE:    { <<: [*base_move, *analysis_cfg], inputs: [analysisId, destination] }
+    ANALYSIS_RENAME:  { <<: [*base_rename, *analysis_cfg], inputs: [analysisId, newId, newTitle] }
+    ANALYSIS_ARCHIVE: { <<: [*base_archive, *analysis_cfg], inputs: [analysisId] }
+    ANALYSIS_STATUS:  { <<: [*base_status, *analysis_cfg], inputs: [analysisId, status] }
+    ANALYSIS_PUBLISH: { <<: [*base_publish, *analysis_cfg], inputs: [analysisId, format] }
+
+    # === PLANS ===
+    PLAN_CREATE:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, type, title, version, sections]
+    PLAN_READ:       { <<: [*base_read, *plan_cfg], inputs: [planId] }
+    PLAN_UPDATE:     { <<: [*base_update, *plan_cfg], inputs: [planId, updates] }
+    PLAN_DELETE:     { <<: [*base_delete, *plan_cfg], inputs: [planId, reason] }
+    PLAN_MOVE:       { <<: [*base_move, *plan_cfg], inputs: [planId, destination] }
+    PLAN_RENAME:     { <<: [*base_rename, *plan_cfg], inputs: [planId, newId, newVersion] }
+    PLAN_ARCHIVE:    { <<: [*base_archive, *plan_cfg], inputs: [planId] }
+    PLAN_STATUS:     { <<: [*base_status, *plan_cfg], inputs: [planId, status] }
+    PLAN_PUBLISH:    { <<: [*base_publish, *plan_cfg], inputs: [planId, approvers] }
+
+    # === CONTRACTS ===
+    CONTRACT_CREATE:
+      <<: [*base_create, *contract_cfg]
+      inputs: [contractId, parties, date, title, terms]
+    CONTRACT_READ:    { <<: [*base_read, *contract_cfg], inputs: [contractId] }
+    CONTRACT_UPDATE:  { <<: [*base_update, *contract_cfg], inputs: [contractId, amendments] }
+    CONTRACT_DELETE:  { <<: [*base_delete, *contract_cfg], inputs: [contractId, legal_reason] }
+    CONTRACT_MOVE:    { <<: [*base_move, *contract_cfg], inputs: [contractId, destination] }
+    CONTRACT_RENAME:  { <<: [*base_rename, *contract_cfg], inputs: [contractId, newId] }
+    CONTRACT_ARCHIVE: { <<: [*base_archive, *contract_cfg], inputs: [contractId] }
+    CONTRACT_STATUS:  { <<: [*base_status, *contract_cfg], inputs: [contractId, status] }
+    CONTRACT_PUBLISH: { <<: [*base_publish, *contract_cfg], inputs: [contractId, signatories] }
+
+    # === ORDERS ===
+    ORDER_CREATE:
+      <<: [*base_create, *order_cfg]
+      inputs: [orderId, severity, target, directive, deadline]
+      authority_required: ["agp", "owner"]
+      validations:
+        - "filename_policy.no_spaces"
+        - "name matches regex"
+        - "authority:pass"
+
+    ORDER_READ:      { <<: [*base_read, *order_cfg], inputs: [orderId] }
+    ORDER_UPDATE:
+      <<: [*base_update, *order_cfg]
+      inputs: [orderId, updates]
+      authority_required: ["agp", "owner"]
+      validations:
+        - "exists:pass"
+        - "permissions:update"
+        - "validate_updates:pass"
+        - "authority:pass"
+
+    ORDER_DELETE:
+      <<: [*base_delete, *order_cfg]
+      inputs: [orderId, reason]
+      authority_required: ["owner"]
+      validations:
+        - "exists:pass"
+        - "permissions:delete"
+        - "no_dependencies:pass"
+        - "authority:pass"
+
+    ORDER_ASSIGN:
+      <<: [*base_update, *order_cfg]
+      inputs: [orderId, assignee]
+      validations:
+        - "exists:pass"
+        - "permissions:update"
+        - "validate_updates:pass"
+        - "authority:pass"
+        - "target_exists:pass"
+
+    ORDER_VALIDATE:
+      <<: [*base_status, *order_cfg]
+      inputs: [orderId, validation]
+      outputs:
+        validated_by: { type: string }
+        timestamp: { type: string }
+
+    ORDER_CANCEL:
+      <<: [*base_status, *order_cfg]
+      inputs: [orderId, cancellation_reason]
+      authority_required: ["agp", "owner"]
+
+    ORDER_ESCALATE:
+      <<: [*base_update, *order_cfg]
+      inputs: [orderId, escalate_to, reason]
+      notifications: ["notify:${escalate_to}"]
+
+    # === DECISIONS ===
+    DECISION_PUBLISH:
+      <<: [*base_publish, *decision_cfg]
+      inputs: [decisionId, type, title, date, context, decision, rationale]
+      authority_required: ["agp"]
+      template_ref: "ARKORE13-TEMPLATES:agp.adr"
+    DECISION_ARCHIVE:
+      <<: [*base_archive, *decision_cfg]
+      inputs: [decisionId]
+      retention: "permanent"
+
+    # === GATES ===
+    GATE_NOTIFY:
+      inputs: [gate, scope, status, recipients]
+      validations: ["gate_exists:pass", "recipients_valid:pass"]
+      notifications_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.GATE_NOTIFIED"
+
+    GATE_BROADCAST:
+      inputs: [gate, decision, message]
+      authority_required: ["agp", "pmo"]
+      broadcast_to: ["all_agents"]
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.GATE_BROADCASTED"
+
+    # === SUPPORT (actions existantes) ===
     DELIVERY_SUBMIT:
       inputs: [featureId, epicId?, usId?, ticketId?, summary]
       routes:
-        notify_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
-        control_ref:      "ARKORE15-AGP-REACTIVE-CONTROL:action_map.CONTROL_EVALUATE"
-        return_ref:       "ARKORE15-AGP-REACTIVE-CONTROL:action_map.AGP_MISSION_RETURN"
+        notify_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
+        control_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.CONTROL_EVALUATE"
+        return_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.AGP_MISSION_RETURN"
         owner_confirm_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.OPTIONAL_OWNER_CONFIRM"
       flow:
         steps: ["ACK", "CONTROL_EVALUATE", "AGP_MISSION_RETURN", "OPTIONAL_OWNER_CONFIRM"]
-      validations: *valid_delivery_ack_latency
-      post: *post_memory_update
+      validations:
+        - "zones.Z1_ack.policy.max_latency_ref honored"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
     MISSION_INGEST:
       inputs: [mission_record]
       ops:
         - "ARKORE14-MEMORY-OPS:operations.MISSION_INGEST"
-      post: *post_memory_update
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
     VALIDATE_NAMING:
       inputs: [featureId?, epicId?, usId?, ticketId?]
       checks:
         feature: "ARKORE09-NAMING-PATTERNS:regex.feature"
-        epic:    "ARKORE09-NAMING-PATTERNS:regex.epic"
-        us:      "ARKORE09-NAMING-PATTERNS:regex.user_story"
-        ticket:  "ARKORE09-NAMING-PATTERNS:regex.ticket"
-      post: *post_memory_update
+        epic: "ARKORE09-NAMING-PATTERNS:regex.epic"
+        us: "ARKORE09-NAMING-PATTERNS:regex.user_story"
+        ticket: "ARKORE09-NAMING-PATTERNS:regex.ticket"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
     ARCHIVE_CAPTURE:
       inputs: [featureId, epicId, usId]
-      validations: *valid_archive_capture_checks
+      validations:
+        - "naming_refs.* resolve"
+        - "evidence_matrix for S2 includes 'trace' and 'review'"
       handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
-      post: *post_memory_update
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
-    # Action pour planifier un workflow avec retour d’un plan structuré
     WORKFLOW_PLAN:
       inputs: [workflowName, scope?]
-      description: "Planifier un workflow inter-agents et retourner un schéma de plan structuré"
+      description: "Planifier un workflow inter-agents et retourner un schéma structuré"
       outputs:
         plan: { type: json, description: "Schéma de plan avec étapes et rôles" }
-      post: *post_memory_update
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
-    # Action pour permettre la revue d’un livrable par un agent critique
     REVIEW_DELIVERABLE:
       inputs: [deliverablePath, reviewer]
       description: "Critiquer et proposer des améliorations sur un livrable donné"
       outputs:
         critique: { type: text, description: "Analyse et commentaires" }
         suggestions: { type: list, items: text }
-      post: *post_memory_update
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+
+  intent_router:
+    CREATE_FEATURE: "FEATURE_CREATE"
+    CREATE_EPIC: "EPIC_CREATE"
+    CREATE_USER_STORY: "US_CREATE"
+    CREATE_TICKET: "TICKET_CREATE"
+    CLOSE_TICKET: "TICKET_CLOSE"
+    RECEIVE_MISSION: "MISSION_INGEST"
+    DELIVERY_SUBMIT: "DELIVERY_SUBMIT"
+    ORDER_CREATE: "ORDER_CREATE"
+    ORDER_CLOSE: "TICKET_CLOSE"
+    PLAN_WORKFLOW: "WORKFLOW_PLAN"
+    REVIEW_DELIVERABLE: "REVIEW_DELIVERABLE"
 
   prompt_macros:
     minimal_steps:
@@ -211,23 +596,22 @@ exports:
         - "Générer README.md via template us.readme"
         - "Ajouter checklist acceptance (ref ARKORE05)"
 
-provides: ["action_keys", "io_contracts", "prompt_macros", "intent_router"]
-requires: [
-  "ARKORE08-PATHS-GOVERNANCE@>=1.1.0",
-  "ARKORE09-NAMING-PATTERNS@>=1.0.0",
-  "ARKORE05-EXECUTION-SPECS@>=1.0.0",
-  "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0",
-  "ARKORE13-TEMPLATES@>=1.0.0",
-  "ARKORE14-MEMORY-OPS@>=1.0.0",
-  "ARKORE15-AGP-REACTIVE-CONTROL@>=1.0.0"
-]
+provides: ["action_keys", "intent_router", "prompt_macros", "action_templates", "type_configs"]
+requires:
+  - "ARKORE08-PATHS-GOVERNANCE@>=3.0.0"
+  - "ARKORE09-NAMING-PATTERNS@>=2.0.0"
+  - "ARKORE05-EXECUTION-SPECS@>=1.0.0"
+  - "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0"
+  - "ARKORE13-TEMPLATES@>=1.2.0"
+  - "ARKORE14-MEMORY-OPS@>=1.1.0"
+  - "ARKORE15-AGP-REACTIVE-CONTROL@>=1.0.0"
+  - "ARKORE16-EVENT-BUS@>=1.0.0"
 contracts:
   invariants:
-    - "every action_key defines post -> MEMORY_UPDATE"
-    - "DELIVERY_SUBMIT.flow[0] == 'ACK'"
-    - "only refs, no duplication of rules"
-    - "all *_ref resolve under enabled profile"
-    - "ORDER_* aliases map only to canonical TICKET_* keys"
-  schema: "jsonschema://arka/action-keys/v1"
+    - "all action templates define MEMORY_UPDATE in post"
+    - "every action under structure/livrables/gouvernance resolves regex/path refs"
+    - "post events using {TYPE} resolve to uppercase action families"
+    - "intent_router keys map to defined action_keys"
+  schema: "jsonschema://arka/action-keys/v2"
 change_policy:
   compatibility: semver

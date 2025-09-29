@@ -13,11 +13,11 @@ exports:
   
   agents:
     # === AGP ===
-    agp-architecte-gouvernance-produit:
+    agp: &agp_permissions
       use_profile: agp-architecte-gouvernance-produit
       permissions:
         - "feature:*"        # Tout sur features
-        - "epic:*"           # Tout sur epics  
+        - "epic:*"           # Tout sur epics
         - "us:*"             # Tout sur US
         - "order:*"          # Ordres de gouvernance
         - "decision:*"       # Décisions AGP
@@ -25,6 +25,9 @@ exports:
         - "*:v"              # Validate sur tout
         - "-delete"          # Jamais delete
       default_map: FEATURE_CREATE
+
+    agp-architecte-gouvernance-produit:
+      <<: *agp_permissions
       
     # === PMO ===
     arka-product-manager-officer:

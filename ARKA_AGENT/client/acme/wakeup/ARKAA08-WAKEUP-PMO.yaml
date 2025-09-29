@@ -48,8 +48,19 @@ guardrails_ref: ARKPR20-WAKEUP-POLICIES:exports.guardrails
 
 # === MÉMOIRE ===
 memory:
-  dir: .mem/pmo/
-  index: .mem/pmo/index.json
+
+  dir: ARKA_META/.system/.mem/pmo/
+  index: ARKA_META/.system/.mem/pmo/index.json
+context_refs:
+  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+  templates_provider_ref: ARKAA11-TEMPLATES-PROVIDER
+  experts_cards_dir: client/acme/experts/ # fiches YAML des sous-agents (liens)
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
+  default_intent: US_CREATE
+  dispatch_mode: subtasks_only # PMO ne code pas ; délègue aux sous-agents
+  delegation:
+    method: Task # Utiliser le Task tool pour déléguer
 
 # === INTENTS ===
 available_intents:

@@ -107,8 +107,8 @@ project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
 
 # === CONFIGURATION ===
 memory:
-  dir: .mem/{agent}/
-  index: .mem/{agent}/index.json
+  dir: ARKA_META/.system/.mem/{agent}/
+  index: ARKA_META/.system/.mem/{agent}/index.json
 
 available_intents:
   - {PRIMARY_ACTION}  # Action principale
@@ -439,10 +439,10 @@ grep "{action}" ARKPR03-ACTION-SETS.yaml
 
 ```bash
 # Vérifier le dossier
-ls -la .mem/{agent-name}/
+ls -la ARKA_META/.system/.mem/{agent-name}/
 
 # Créer si nécessaire
-mkdir -p .mem/{agent-name}/log/
+mkdir -p ARKA_META/.system/.mem/{agent-name}/log/
 ```
 
 ### Problème : Context manquant

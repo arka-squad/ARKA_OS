@@ -42,7 +42,7 @@ graph TB
     
     subgraph "Couche Infrastructure"
         FS[File System]
-        MEM[.mem/]
+        MEM[ARKA_META/.system/.mem/]
         LOGS[Logs JSONL]
         HOOKS[Scripts/Webhooks]
     end
@@ -188,7 +188,7 @@ sequenceDiagram
 
 ### Structure Physique
 ```
-.mem/
+ARKA_META/.system/.mem/
 ├── {agent}/
 │   ├── log/
 │   │   ├── 2025-01-29.jsonl

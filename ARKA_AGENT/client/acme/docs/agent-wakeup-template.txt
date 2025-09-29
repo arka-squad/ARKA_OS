@@ -25,8 +25,8 @@ guardrails_ref: ARKPR20-WAKEUP-POLICIES:exports.guardrails
 
 # Mémoire locale
 memory:
-  dir: .mem/{agent-name}/
-  index: .mem/{agent-name}/index.json
+  dir: ARKA_META/.system/.mem/{agent-name}/
+  index: ARKA_META/.system/.mem/{agent-name}/index.json
   
 # Intentions disponibles
 available_intents:

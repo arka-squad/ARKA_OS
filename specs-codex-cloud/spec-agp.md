@@ -43,7 +43,7 @@ test_environment:
   - "tests/**"
   - "local/test-results/**"
   - "local/reports/**"
-  - ".mem/test/**"
+  - "ARKA_META/.system/.mem/test/**"
 
 debug_paths:
   - "local/debug/**"
@@ -53,7 +53,7 @@ debug_paths:
 monitoring_paths:
   - "local/monitoring/**"
   - "local/metrics/**"
-  - ".mem/agp/monitoring/**"
+  - "ARKA_META/.system/.mem/agp/monitoring/**"
 ```
 
 ### 3. Droits AGP Étendus
@@ -121,7 +121,7 @@ viewer_data_paths:
   - "local/reports/**"
   - "local/test-results/**"
   - "local/logs/**"
-  - ".mem/agp/**"
+  - "ARKA_META/.system/.mem/agp/**"
   - "local/exports/**"
 ```
 
@@ -272,7 +272,7 @@ En cas de problème :
 - **Sécurité** : Tous les nouveaux droits respectent `deny_paths: [secrets]`
 - **Scope** : Extensions focalisées sur tests/monitoring, pas de droits de production
 - **Compatibilité** : Changements additifs, pas de breaking changes
-- **Audit** : Toutes les actions étendues logged dans `.mem/agp/`
+- **Audit** : Toutes les actions étendues logged dans `ARKA_META/.system/.mem/agp/`
 
 ---
 *Spec créée pour phase de test et stabilisation ARKA_OS - Version 1.0*

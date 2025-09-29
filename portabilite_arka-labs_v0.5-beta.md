@@ -12,8 +12,8 @@ Voici juste ce qu’il faut verrouiller pour que ça tourne partout :
 * **Mémoire locale (ARKORE14)** : écris sous le dossier “données applicatives” par OS :
 
   * Win: `%APPDATA%\ArkaLabs\.mem\`
-  * macOS: `~/Library/Application Support/ArkaLabs/.mem/`
-  * Linux: `~/.local/share/ArkaLabs/.mem/`
+  * macOS: `~/Library/Application Support/ArkaLabs/ARKA_META/.system/.mem/`
+  * Linux: `~/.local/share/ArkaLabs/ARKA_META/.system/.mem/`
     → expose `MEM_DIR` et mappe-le dans `roots_ref` (pas de chemins absolus en dur).
 * **Réseau facultatif** : `net_access` vient de **PROFIL**. Tu peux fonctionner **offline** (désable `webhook` dans `ARKORE16` et garde `local`).
 * **No-override de CORE** : l’app charge **en lecture seule** `core.assembly.yaml` + `profiles.bundle.yaml` + `agent assembly`.

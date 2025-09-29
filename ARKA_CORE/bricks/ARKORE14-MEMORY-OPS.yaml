@@ -1,5 +1,5 @@
 id: ARKORE14-MEMORY-OPS
-version: 1.0.0
+version: 1.1.0
 title: "Opérations mémoire & hooks"
 summary: >
   Mémoire orientée LLM: schéma compact, hooks systématiques post-action et à la
@@ -32,10 +32,10 @@ exports:
         - { key: priority, type: enum, values: [low, normal, high, critical] }
         - { key: deadline, type: iso8601? }
   storage:
-    roots_ref: "ARKORE08-PATHS-GOVERNANCE:memory_isolation"
+    roots_ref: "ARKORE08-PATHS-GOVERNANCE:system.memory"
     files:
-      daily_jsonl: ".mem/{agent}/log/{YYYY-MM-DD}.jsonl"
-      index_json:  ".mem/{agent}/index.json"
+      daily_jsonl: "${arka_root}/.system/.mem/{agent}/log/{YYYY-MM-DD}.jsonl"
+      index_json:  "${arka_root}/.system/.mem/{agent}/index.json"
   operations:
     MEMORY_UPDATE:
       input: { action_key: string, scope?: object, inputs?: object, outputs?: object, validations?: list }
@@ -71,7 +71,7 @@ exports:
     default_days: 180
     critical_days: 365
 provides: ["schema", "storage", "operations", "hooks", "retention"]
-requires: ["ARKORE08-PATHS-GOVERNANCE@>=1.1.0", "ARKORE05-EXECUTION-SPECS@>=1.0.0"]
+requires: ["ARKORE08-PATHS-GOVERNANCE@>=3.0.0", "ARKORE05-EXECUTION-SPECS@>=1.0.0"]
 contracts:
   invariants:
     - "all ops only reference paths from ARKORE08"

@@ -10,12 +10,15 @@ rules_index_ref:     ARKPR20-WAKEUP-POLICIES:exports.rules_index_ref
 guardrails_ref:      ARKPR20-WAKEUP-POLICIES:exports.guardrails
 
 available_intents:
-  - AGP_GATE
+  - GATE_NOTIFY
+  - ORDER_CREATE
+  - DECISION_PUBLISH
+  - DOCUMENT_CREATE
 include_common_intents_ref: ARKPR20-WAKEUP-POLICIES:exports.intents_common
 
 memory:
-  dir: .mem/agp/
-  index: .mem/agp/index.json
+  dir: ARKA_META/.system/.mem/agp/
+  index: ARKA_META/.system/.mem/agp/index.json
 
 providers:
   chat_multi_provider_ref: ARKAA21-PROJECT-CONTEXT:vars.providers.chat_multi_provider

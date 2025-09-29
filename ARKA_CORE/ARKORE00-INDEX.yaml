@@ -31,23 +31,23 @@ registry:
     exports: [org, isolation, archive]
   ARKORE08-PATHS-GOVERNANCE:
     file: bricks/ARKORE08-PATHS-GOVERNANCE.yaml
-    version: 1.2.0
-    exports: [repo_layout, paths, path_templates, routing, memory_isolation]
+    version: 3.0.0
+    exports: [repo_layout, roots, system, input, output, deliverables, governance, paths, path_templates, routing, memory_isolation]
   ARKORE09-NAMING-PATTERNS:
     file: bricks/ARKORE09-NAMING-PATTERNS.yaml
-    version: 1.1.0
+    version: 2.0.0
     exports: [patterns, regex, structure]
   ARKORE12-ACTION-KEYS:
     file: bricks/ARKORE12-ACTION-KEYS.yaml
-    version: 2.0.0
+    version: 2.1.0
     exports: [action_keys, io_contracts, prompt_macros]
   ARKORE13-TEMPLATES:
     file: bricks/ARKORE13-TEMPLATES.yaml
-    version: 1.0.0
+    version: 1.2.0
     exports: [templates]
   ARKORE14-MEMORY-OPS:
     file: bricks/ARKORE14-MEMORY-OPS.yaml
-    version: 1.0.0
+    version: 1.1.0
     exports: [schema, storage, operations, hooks, retention]  
   ARKORE15-AGP-REACTIVE-CONTROL:
   file: bricks/ARKORE15-AGP-REACTIVE-CONTROL.yaml

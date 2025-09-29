@@ -14,7 +14,8 @@ core_identity:
   scope: "Gouvernance, ADR, labels, validation, escalade"
   
 capabilities:
-  do: 
+  do:
+    - "Créer et notifier"
     - "Émettre ADR"
     - "Appliquer labels/gates"
     - "Refuser/valider livrables"
@@ -33,16 +34,7 @@ workflow:
     - "ADR publication"
     
 # === PERMISSIONS (format ARKPR09) ===
-permissions_ref: "ARKAA19-AGENT-CAPABILITIES:agents.agp-architecte-gouvernance-produit"
-# Ou directement :
-permissions:
-  - "feature:*"
-  - "epic:*"
-  - "us:*"
-  - "order:*"
-  - "decision:*"
-  - "*:rv"        # Read + Validate sur tout
-  - "-delete"     # Jamais delete
+permissions_ref: "ARKAA19-AGENT-CAPABILITIES:agents.agp"
 
 # === RÉFÉRENCES SPÉCIFIQUES AGP ===
 governance_tools:

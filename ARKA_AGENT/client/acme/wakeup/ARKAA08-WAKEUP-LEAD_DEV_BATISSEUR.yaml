@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.lead-dev-batisseur
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.lead-dev-batisseur
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/lead-dev-batisseur/
-  index: .mem/lead-dev-batisseur/index.json
+  dir: ARKA_META/.system/.mem/lead-dev-batisseur/
+  index: ARKA_META/.system/.mem/lead-dev-batisseur/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
 startup:

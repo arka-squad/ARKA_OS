@@ -10,20 +10,27 @@ summary: >
 
 rules:
   path_templates:
-    feature_dir: { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir", version: ">=1.1.0" }
-    epic_dir:    { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir",    version: ">=1.1.0" }
-    us_dir:      { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir",      version: ">=1.1.0" }
-    ticket_dir:  { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir",  version: ">=1.1.0" }
+    feature_dir:        { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir",        version: ">=3.0.0" }
+    epic_dir:           { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir",           version: ">=3.0.0" }
+    us_dir:             { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir",             version: ">=3.0.0" }
+    ticket_dir:         { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir",         version: ">=3.0.0" }
+    feature_reviews_dir:{ ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_reviews_dir", version: ">=3.0.0" }
+    feature_cr_dir:     { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_cr_dir",     version: ">=3.0.0" }
+    epic_cr_dir:        { ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_cr_dir",        version: ">=3.0.0" }
   naming_patterns:
-    feature_regex: { ref: "ARKORE09-NAMING-PATTERNS:regex.feature", version: ">=1.0.0" }
-    epic_regex:    { ref: "ARKORE09-NAMING-PATTERNS:regex.epic",    version: ">=1.0.0" }
-    us_regex:      { ref: "ARKORE09-NAMING-PATTERNS:regex.user_story", version: ">=1.0.0" }
-    ticket_regex:  { ref: "ARKORE09-NAMING-PATTERNS:regex.ticket",  version: ">=1.0.0" }
+    feature_regex:       { ref: "ARKORE09-NAMING-PATTERNS:regex.feature",        version: ">=2.0.0" }
+    epic_regex:          { ref: "ARKORE09-NAMING-PATTERNS:regex.epic",           version: ">=2.0.0" }
+    us_regex:            { ref: "ARKORE09-NAMING-PATTERNS:regex.user_story",     version: ">=2.0.0" }
+    ticket_regex:        { ref: "ARKORE09-NAMING-PATTERNS:regex.ticket",         version: ">=2.0.0" }
+    change_request_regex:{ ref: "ARKORE09-NAMING-PATTERNS:regex.change_request", version: ">=2.0.0" }
+    agp_review_regex:    { ref: "ARKORE09-NAMING-PATTERNS:regex.agp_review",     version: ">=2.0.0" }
   templates:
-    feature_readme: { ref: "ARKORE13-TEMPLATES:feature.readme", version: ">=1.0.0" }
-    epic_readme:    { ref: "ARKORE13-TEMPLATES:epic.readme",    version: ">=1.0.0" }
-    us_readme:      { ref: "ARKORE13-TEMPLATES:us.readme",      version: ">=1.0.0" }
-    ticket_work:    { ref: "ARKORE13-TEMPLATES:ticket.work",    version: ">=1.0.0" }
+    feature_readme:      { ref: "ARKORE13-TEMPLATES:feature.readme",      version: ">=1.2.0" }
+    epic_readme:         { ref: "ARKORE13-TEMPLATES:epic.readme",         version: ">=1.2.0" }
+    us_readme:           { ref: "ARKORE13-TEMPLATES:us.readme",           version: ">=1.2.0" }
+    ticket_work:         { ref: "ARKORE13-TEMPLATES:ticket.work",         version: ">=1.2.0" }
+    cr_default:          { ref: "ARKORE13-TEMPLATES:change_request.default", version: ">=1.2.0" }
+    agp_review:          { ref: "ARKORE13-TEMPLATES:agp.review",          version: ">=1.2.0" }
   acceptance_criteria:
     default: { ref: "ARKORE05-EXECUTION-SPECS:acceptance", version: ">=1.0.0" }
   workflows:
