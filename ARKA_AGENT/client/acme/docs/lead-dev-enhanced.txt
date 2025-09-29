@@ -18,8 +18,8 @@ guardrails_ref: ARKPR20-WAKEUP-POLICIES:exports.guardrails
 
 # === CONFIGURATION ===
 memory:
-  dir: .mem/lead-dev-batisseur/
-  index: .mem/lead-dev-batisseur/index.json
+  dir: ARKA_META/.system/.mem/lead-dev-batisseur/
+  index: ARKA_META/.system/.mem/lead-dev-batisseur/index.json
   retention_days: 180
   
 available_intents:

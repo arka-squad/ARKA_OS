@@ -18,8 +18,8 @@ guardrails_ref: ARKPR20-WAKEUP-POLICIES:exports.guardrails
 
 # === CONFIGURATION PMO ===
 memory:
-  dir: .mem/pmo/
-  index: .mem/pmo/index.json
+  dir: ARKA_META/.system/.mem/pmo/
+  index: ARKA_META/.system/.mem/pmo/index.json
   retention_days: 365  # Plus long pour historique projet
 
 available_intents:
@@ -221,7 +221,7 @@ evidence:
     - decisions_log
     
   storage:
-    location: .mem/pmo/evidence/
+    location: ARKA_META/.system/.mem/pmo/evidence/
     format: markdown
     retention: 365_days
     

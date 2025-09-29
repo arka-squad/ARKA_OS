@@ -147,7 +147,7 @@ input:
 * **Toujours à jour** : toute action déclenche `MEMORY_UPDATE` (**ARKORE14**).
 * **Mission** : `MISSION_INGEST` + `MEMORY_UPDATE` dès réception d’un ordre.
 * **Lecture rapide** : `READ_CONTEXT` renvoie N derniers enregistrements pour amorcer un LLM.
-* Stockage JSONL par agent : `.mem/{agent}/log/YYYY-MM-DD.jsonl` + index `.mem/{agent}/index.json`.
+* Stockage JSONL par agent : `ARKA_META/.system/.mem/{agent}/log/YYYY-MM-DD.jsonl` + index `ARKA_META/.system/.mem/{agent}/index.json`.
 
 ---
 

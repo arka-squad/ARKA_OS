@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.devops-guardian
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.devops-guardian
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/devops-guardian/
-  index: .mem/devops-guardian/index.json
+  dir: ARKA_META/.system/.mem/devops-guardian/
+  index: ARKA_META/.system/.mem/devops-guardian/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
 startup:

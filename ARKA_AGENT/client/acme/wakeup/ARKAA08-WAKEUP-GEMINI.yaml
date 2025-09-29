@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.positioning-expert # ou profi
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.gemini-owner-sourcing
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/gemini/
-  index: .mem/gemini/index.json
+  dir: ARKA_META/.system/.mem/gemini/
+  index: ARKA_META/.system/.mem/gemini/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
   research_policy_ref?: client/acme/policies/research.yaml # domaines autorisés, sources

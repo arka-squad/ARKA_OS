@@ -58,7 +58,7 @@ defaults:
 deliverables:
   evidence:
     ref: "ARKORE06-CONTROL-MATRICES:evidence_matrix"
-    location: ".mem/{agent}/evidence/"
+    location: "ARKA_META/.system/.mem/{agent}/evidence/"
     
   reports:
     format: "CR-{role}_YYYYMMDD-HHMM.md"

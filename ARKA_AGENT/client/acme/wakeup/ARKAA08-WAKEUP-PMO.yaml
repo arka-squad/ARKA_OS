@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.arka-product-manager-officer
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.arka-product-manager-officer
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/pmo/
-  index: .mem/pmo/index.json
+  dir: ARKA_META/.system/.mem/pmo/
+  index: ARKA_META/.system/.mem/pmo/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
   templates_provider_ref: ARKAA11-TEMPLATES-PROVIDER
