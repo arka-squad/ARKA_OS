@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.arka-scribe
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.arka-scribe
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/arka-scribe/
-  index: .mem/arka-scribe/index.json
+  dir: ARKA_META/.system/.mem/arka-scribe/
+  index: ARKA_META/.system/.mem/arka-scribe/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
 startup:

@@ -23,6 +23,8 @@ const C = {
   AGENT: process.env.ARKA_AGENT || "runner",
 };
 
+let G_PATHS = null;
+
 // ------------------------------ Utils ------------------------------
 function die(msg, code = 1) { console.error("[ARKA-RUNNER] ERROR:", msg); process.exit(code); }
 function hasYq() { try { execFileSync("yq", ["--version"], { stdio: "ignore" }); return true; } catch { return false; } }
@@ -33,6 +35,36 @@ function readAssembly(assemblyPath) {
   try { return JSON.parse(json); } catch (e) { die("Invalid assembly JSON from yq: " + e.message); }
 }
 function get(obj, pathStr) { return pathStr.split(".").reduce((o, k) => (o == null ? undefined : o[k]), obj); }
+
+function expandEnvPlaceholders(str, ctx = {}) {
+  if (typeof str !== "string") return str;
+  return str.replace(/\$\{([^}]+)}/g, (_, expr) => {
+    const trimmed = expr.trim();
+    const [name, fallback] = trimmed.split(":-");
+    const key = name.trim();
+    const envVal = process.env[key];
+    if (envVal != null && envVal !== "") return envVal;
+    const ctxVal = get(ctx, key);
+    if (ctxVal != null && ctxVal !== "") return ctxVal;
+    return fallback !== undefined ? fallback : "";
+  });
+}
+
+function fillTemplate(str, data = {}, ctx = G_PATHS) {
+  if (typeof str !== "string") return str;
+  return str.replace(/\$\{([^}]+)}/g, (_, expr) => {
+    const trimmed = expr.trim();
+    const [name, fallback] = trimmed.split(":-");
+    const key = name.trim();
+    const dataVal = get(data, key);
+    if (dataVal != null) return String(dataVal);
+    const ctxVal = ctx ? get(ctx, key) : undefined;
+    if (ctxVal != null) return String(ctxVal);
+    const envVal = process.env[key];
+    if (envVal != null && envVal !== "") return envVal;
+    return fallback !== undefined ? fallback : "";
+  });
+}
 function resolveRef(asm, ref) {
   if (typeof ref !== "string" || !ref.includes(":")) die(`Invalid ref: ${ref}`);
   const [brick, p] = ref.split(":", 2);
@@ -50,10 +82,23 @@ function getActionDef(asm, key) {
 }
 function ensureDir(p) { fs.mkdirSync(p, { recursive: true }); }
 function writeText(file, content) { ensureDir(path.dirname(file)); fs.writeFileSync(file, content, "utf8"); }
+function ensureFile(file, content) { if (!fs.existsSync(file)) writeText(file, content); }
 function appendJSONL(file, obj) { ensureDir(path.dirname(file)); fs.appendFileSync(file, JSON.stringify(obj) + "\n", "utf8"); }
 function readJSON(file, def = {}) { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return def; } }
 function writeJSON(file, obj) { ensureDir(path.dirname(file)); fs.writeFileSync(file, JSON.stringify(obj, null, 2)); }
-function tpl(str, dict) { return str.replace(/\$\{([^}]+)}/g, (_, k) => (dict[k] ?? "")); }
+function tpl(str, dict) {
+  if (typeof str !== "string") return str;
+  const data = dict || {};
+  let out = str.replace(/\{([^}]+)}/g, (_, key) => {
+    const raw = key.trim();
+    const candidates = [raw, `${raw}Id`, raw.replace(/([A-Z])/g, m => `_${m.toLowerCase()}`)];
+    for (const cand of candidates) {
+      if (data[cand] != null) return String(data[cand]);
+    }
+    return "";
+  });
+  return fillTemplate(out, data);
+}
 function readTemplateValue(val) {
   if (!val) return null;
   if (typeof val === "string" && val.startsWith("file://")) { const p = url.fileURLToPath(val); return fs.readFileSync(p, "utf8"); }
@@ -89,12 +134,150 @@ async function dispatchEvent(asm, name, payload) {
 }
 
 // -------------------------- Memory Operations ----------------------
-function memoryFilesFor(agent) { const d = new Date(); const yyyy = d.getUTCFullYear(); const mm = String(d.getUTCMonth()+1).padStart(2,"0"); const dd = String(d.getUTCDate()).padStart(2,"0"); return { daily: `.mem/${agent}/log/${yyyy}-${mm}-${dd}.jsonl`, index: `.mem/${agent}/index.json` }; }
+function memoryFilesFor(agent) {
+  const d = new Date();
+  const yyyy = d.getUTCFullYear();
+  const mm = String(d.getUTCMonth() + 1).padStart(2, "0");
+  const dd = String(d.getUTCDate()).padStart(2, "0");
+  const memoryRoot = G_PATHS?.system?.memory || path.join("ARKA_META", ".system", ".mem");
+  const baseDir = path.join(memoryRoot, agent);
+  return {
+    daily: path.join(baseDir, "log", `${yyyy}-${mm}-${dd}.jsonl`),
+    index: path.join(baseDir, "index.json"),
+  };
+}
 function memoryUpdate({ action_key, scope, inputs, outputs, refs_resolved, validations, status, actor = C.AGENT }) {
   const rec = { ts: new Date().toISOString(), actor, action_key, scope, inputs, outputs, refs_resolved, validations, status };
   const { daily, index } = memoryFilesFor(actor);
   appendJSONL(daily, rec);
   const idx = readJSON(index, {}); const key = JSON.stringify(scope || {}); idx[key] = { last: rec.ts, action_key, status }; writeJSON(index, idx); return rec;
+}
+
+function computeArkaPaths(asm) {
+  const ctx = {};
+  const rootExpr = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:roots.arka_root");
+  const arkaRoot = path.resolve(expandEnvPlaceholders(rootExpr));
+  ctx.arka_root = arkaRoot;
+  const expand = ref => fillTemplate(resolveRef(asm, ref), ctx, ctx);
+
+  ctx.system = {
+    root: expand("ARKORE08-PATHS-GOVERNANCE:system.root"),
+    memory: expand("ARKORE08-PATHS-GOVERNANCE:system.memory"),
+    memory_agent: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:system.memory_agent"), ctx, ctx),
+    index: expand("ARKORE08-PATHS-GOVERNANCE:system.index"),
+    config: expand("ARKORE08-PATHS-GOVERNANCE:system.config"),
+    locks: expand("ARKORE08-PATHS-GOVERNANCE:system.locks"),
+  };
+
+  ctx.input = {
+    root: expand("ARKORE08-PATHS-GOVERNANCE:input.root"),
+    vision: expand("ARKORE08-PATHS-GOVERNANCE:input.vision"),
+    plan_directeur: expand("ARKORE08-PATHS-GOVERNANCE:input.plan_directeur"),
+    roadmap: expand("ARKORE08-PATHS-GOVERNANCE:input.roadmap"),
+    context: expand("ARKORE08-PATHS-GOVERNANCE:input.context"),
+    context_files: {
+      glossaire: expand("ARKORE08-PATHS-GOVERNANCE:input.context_files.glossaire"),
+      contraintes: expand("ARKORE08-PATHS-GOVERNANCE:input.context_files.contraintes"),
+      stakeholders: expand("ARKORE08-PATHS-GOVERNANCE:input.context_files.stakeholders"),
+    },
+  };
+
+  ctx.output = {
+    root: expand("ARKORE08-PATHS-GOVERNANCE:output.root"),
+    features: expand("ARKORE08-PATHS-GOVERNANCE:output.features"),
+    deliverables: expand("ARKORE08-PATHS-GOVERNANCE:output.deliverables"),
+    governance: expand("ARKORE08-PATHS-GOVERNANCE:output.governance"),
+    archives: expand("ARKORE08-PATHS-GOVERNANCE:output.archives"),
+  };
+
+  ctx.deliverables = {
+    documents: expand("ARKORE08-PATHS-GOVERNANCE:deliverables.documents"),
+    reports: expand("ARKORE08-PATHS-GOVERNANCE:deliverables.reports"),
+    analysis: expand("ARKORE08-PATHS-GOVERNANCE:deliverables.analysis"),
+    plans: expand("ARKORE08-PATHS-GOVERNANCE:deliverables.plans"),
+    contracts: expand("ARKORE08-PATHS-GOVERNANCE:deliverables.contracts"),
+  };
+
+  ctx.governance = {
+    orders: expand("ARKORE08-PATHS-GOVERNANCE:governance.orders"),
+    decisions: expand("ARKORE08-PATHS-GOVERNANCE:governance.decisions"),
+  };
+
+  ctx.paths = {
+    features_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.features_root"), ctx, ctx),
+    epics_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.epics_root"), ctx, ctx),
+    user_stories_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.user_stories_root"), ctx, ctx),
+    tickets_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.tickets_root"), ctx, ctx),
+    evidence_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.evidence_root"), ctx, ctx),
+    deliverables: {
+      documents_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.documents_root"), ctx, ctx),
+      reports_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.reports_root"), ctx, ctx),
+      analysis_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.analysis_root"), ctx, ctx),
+      plans_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.plans_root"), ctx, ctx),
+      contracts_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.deliverables.contracts_root"), ctx, ctx),
+    },
+    governance: {
+      orders_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.governance.orders_root"), ctx, ctx),
+      decisions_root: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:paths.governance.decisions_root"), ctx, ctx),
+    },
+  };
+
+  ctx.path_templates = {
+    feature_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_dir"), ctx, ctx),
+    feature_cr_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_cr_dir"), ctx, ctx),
+    feature_reviews_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_reviews_dir"), ctx, ctx),
+    epic_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"), ctx, ctx),
+    epic_cr_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_cr_dir"), ctx, ctx),
+    us_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"), ctx, ctx),
+    ticket_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"), ctx, ctx),
+    evidence_dir: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.evidence_dir"), ctx, ctx),
+  };
+
+  ctx.memory_isolation = {
+    claude: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:memory_isolation.claude"), ctx, ctx),
+    codex: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:memory_isolation.codex"), ctx, ctx),
+    merlin: fillTemplate(resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:memory_isolation.merlin"), ctx, ctx),
+  };
+
+  return ctx;
+}
+
+function initializeArkaMeta(asm) {
+  const ctx = computeArkaPaths(asm);
+  G_PATHS = ctx;
+
+  ensureDir(ctx.arka_root);
+  ensureDir(ctx.system.root);
+  ensureDir(ctx.system.memory);
+  ensureDir(ctx.system.index);
+  ensureDir(ctx.system.config);
+  ensureDir(ctx.system.locks);
+
+  ensureDir(ctx.input.root);
+  ensureDir(ctx.input.context);
+  ensureFile(ctx.input.vision, "# Vision produit\n");
+  ensureFile(ctx.input.plan_directeur, "# Plan directeur\n");
+  ensureFile(ctx.input.roadmap, "# Roadmap\n");
+  ensureFile(ctx.input.context_files.glossaire, "# Glossaire\n");
+  ensureFile(ctx.input.context_files.contraintes, "# Contraintes\n");
+  ensureFile(ctx.input.context_files.stakeholders, "# Parties prenantes\n");
+
+  ensureDir(ctx.output.root);
+  ensureDir(ctx.output.features);
+  ensureDir(ctx.output.deliverables);
+  ensureDir(ctx.output.governance);
+  ensureDir(ctx.output.archives);
+
+  ensureDir(ctx.deliverables.documents);
+  ensureDir(ctx.deliverables.reports);
+  ensureDir(ctx.deliverables.analysis);
+  ensureDir(ctx.deliverables.plans);
+  ensureDir(ctx.deliverables.contracts);
+
+  ensureDir(ctx.governance.orders);
+  ensureDir(ctx.governance.decisions);
+
+  return ctx;
 }
 
 // --------------------------- Normalization -------------------------
@@ -113,6 +296,80 @@ function buildVars(input) {
     ticketId: input.ticketId,
   };
 }
+
+function findMatchingDir(baseDir, target) {
+  if (!target || !baseDir || !fs.existsSync(baseDir)) return null;
+  const entries = fs.readdirSync(baseDir, { withFileTypes: true });
+  const normalized = String(target).toLowerCase();
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const name = entry.name;
+    const lower = name.toLowerCase();
+    if (lower === normalized || lower === normalized.replace(/\s+/g, "")) return path.join(baseDir, name);
+  }
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const lower = entry.name.toLowerCase();
+    if (lower.startsWith(`${normalized}-`)) return path.join(baseDir, entry.name);
+  }
+  return null;
+}
+
+function resolveFeatureLocation(featureId) {
+  const featuresRoot = G_PATHS?.output?.features;
+  if (!featuresRoot) return null;
+  const dir = findMatchingDir(featuresRoot, featureId);
+  if (!dir) return null;
+  return { featureDir: dir, featureId: path.basename(dir) };
+}
+
+function resolveEpicLocation(epicId, featureId) {
+  const featuresRoot = G_PATHS?.output?.features;
+  if (!featuresRoot || !fs.existsSync(featuresRoot)) return null;
+  if (featureId) {
+    const feature = resolveFeatureLocation(featureId);
+    if (!feature) return null;
+    const epicDir = findMatchingDir(path.join(feature.featureDir, "EPICS"), epicId);
+    if (!epicDir) return null;
+    return { featureDir: feature.featureDir, featureId: feature.featureId, epicDir, epicId: path.basename(epicDir) };
+  }
+  const entries = fs.readdirSync(featuresRoot, { withFileTypes: true });
+  for (const entry of entries) {
+    if (!entry.isDirectory()) continue;
+    const featureDir = path.join(featuresRoot, entry.name);
+    const epicDir = findMatchingDir(path.join(featureDir, "EPICS"), epicId);
+    if (epicDir) return { featureDir, featureId: entry.name, epicDir, epicId: path.basename(epicDir) };
+  }
+  return null;
+}
+
+function findCrFile(crDir, crId) {
+  if (!crDir || !fs.existsSync(crDir)) return null;
+  const base = String(crId || "").replace(/\.md$/i, "");
+  const entries = fs.readdirSync(crDir).filter(f => f.toLowerCase().endsWith(".md"));
+  const exact = entries.find(f => f.replace(/\.md$/i, "") === base);
+  if (exact) return path.join(crDir, exact);
+  const approx = entries.find(f => f.startsWith(base));
+  return approx ? path.join(crDir, approx) : null;
+}
+
+function findReviewFile(dir, reviewId) {
+  if (!dir || !fs.existsSync(dir)) return null;
+  const base = String(reviewId || "").replace(/\.md$/i, "");
+  const entries = fs.readdirSync(dir).filter(f => f.toLowerCase().endsWith(".md"));
+  const exact = entries.find(f => f.replace(/\.md$/i, "") === base);
+  if (exact) return path.join(dir, exact);
+  const approx = entries.find(f => f.startsWith(base));
+  return approx ? path.join(dir, approx) : null;
+}
+
+function extractFeatureNumeric(featureId) {
+  if (!featureId) return "";
+  const match = String(featureId).match(/FEAT[-]?([0-9]+)/i);
+  if (match && match[1]) return match[1];
+  const digits = String(featureId).replace(/\D+/g, "");
+  return digits || String(featureId);
+}
 function usDirFromAsm(asm, vars) { const tpl = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"); return tpl && tpl( tpl, vars ), tpl ? tpl.replace(/\$\{([^}]+)}/g, (_,k)=>vars[k]??"") : ""; }
 function ticketDirFromAsm(asm, vars) { const tpl = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"); return tpl.replace(/\$\{([^}]+)}/g, (_,k)=>vars[k]??""); }
 
@@ -128,6 +385,8 @@ const TYPE_ID_FIELDS = {
   contract: "contractId",
   order: "orderId",
   decision: "decisionId",
+  cr: "crRecordId",
+  agp_review: "reviewId",
 };
 
 const TYPE_SCOPE_KEYS = {
@@ -142,6 +401,8 @@ const TYPE_SCOPE_KEYS = {
   contract: ["contractId"],
   order: ["orderId"],
   decision: ["decisionId"],
+  cr: ["featureId", "epicId", "crRecordId"],
+  agp_review: ["featureId", "reviewId"],
 };
 
 function typeFromActionKey(actionKey) {
@@ -152,20 +413,16 @@ function typeFromActionKey(actionKey) {
 
 function applyPathPlaceholders(template, input) {
   if (typeof template !== "string") return null;
+  const data = input || {};
   let out = template.replace(/\{([^}]+)}/g, (_, key) => {
     const raw = key.trim();
     const candidates = [raw, `${raw}Id`, raw.replace(/([A-Z])/g, m => `_${m.toLowerCase()}`)];
-    for (const k of candidates) {
-      if (input[k] != null) return String(input[k]);
+    for (const cand of candidates) {
+      if (data[cand] != null) return String(data[cand]);
     }
     return "";
   });
-  out = out.replace(/\$\{([^}]+)}/g, (_, expr) => {
-    const pathExp = expr.trim();
-    const v = get(input, pathExp);
-    return v == null ? "" : String(v);
-  });
-  return out;
+  return fillTemplate(out, data);
 }
 
 function resolveResourcePath(asm, actionDef, type, input) {
@@ -447,6 +704,10 @@ const CUSTOM_ACTION_HANDLERS = {
   REVIEW_DELIVERABLE: action_REVIEW_DELIVERABLE,
   GATE_NOTIFY: action_GATE_NOTIFY,
   GATE_BROADCAST: action_GATE_BROADCAST,
+  CR_CREATE: action_CR_CREATE,
+  CR_READ: action_CR_READ,
+  AGP_REVIEW_CREATE: action_AGP_REVIEW_CREATE,
+  AGP_REVIEW_READ: action_AGP_REVIEW_READ,
 };
 
 function validateRegex(asm, regexRef, value, label) { const rxStr = resolveRef(asm, regexRef); const rx = new RegExp(rxStr); if (!rx.test(value)) die(`${label} invalid by ${regexRef}: ${value}`); return `${label}:pass`; }
@@ -612,6 +873,158 @@ async function action_REVIEW_DELIVERABLE(asm, input) {
   return finalizeGenericAction({ asm, actionKey: "REVIEW_DELIVERABLE", actionDef, type: "review", input }, outputs, validations);
 }
 
+async function action_CR_CREATE(asm, input) {
+  const actionDef = getActionDef(asm, "CR_CREATE");
+  const targetType = String(input.targetType || "").toLowerCase();
+  if (!["feature", "epic"].includes(targetType)) die("CR_CREATE.targetType must be 'feature' or 'epic'");
+  let feature = null;
+  let epic = null;
+  let crDir = null;
+  if (targetType === "feature") {
+    feature = resolveFeatureLocation(input.featureId || input.targetId);
+    if (!feature) die(`Feature directory introuvable pour ${input.featureId || input.targetId}`);
+    crDir = path.join(feature.featureDir, "CR");
+  } else {
+    epic = resolveEpicLocation(input.epicId || input.targetId, input.featureId);
+    if (!epic) die(`Epic directory introuvable pour ${input.epicId || input.targetId}`);
+    feature = { featureDir: epic.featureDir, featureId: epic.featureId };
+    crDir = path.join(epic.epicDir, "CR");
+  }
+  ensureDir(crDir);
+  const resolvedTargetId = targetType === "feature" ? feature.featureId : epic.epicId;
+  const recordId = `CR-${targetType.toUpperCase()}-${input.crId}-${input.date}`;
+  const validations = [];
+  validations.push("target_exists:pass");
+  validations.push(validateRegex(asm, actionDef.naming.regex_ref, recordId, "regex.change_request"));
+  const filePath = path.join(crDir, `${recordId}.md`);
+  const templateRef = actionDef.templates?.cr_ref;
+  let content = `# ${recordId}\n`;
+  if (templateRef) {
+    const tplValue = readTemplateValue(resolveRef(asm, templateRef));
+    if (tplValue) {
+      content = fillTemplate(tplValue, {
+        ...input,
+        crId: recordId,
+        targetId: resolvedTargetId,
+        targetType: targetType.toUpperCase(),
+        description: input.description || "",
+      });
+    }
+  }
+  ensureFile(filePath, content);
+  const ctxInput = {
+    ...input,
+    featureId: feature?.featureId,
+    epicId: epic?.epicId,
+    crRecordId: recordId,
+  };
+  const outputs = {
+    created: {
+      id: recordId,
+      path: filePath,
+      targetType,
+      targetId: resolvedTargetId,
+    },
+  };
+  validations.push("naming_valid:pass");
+  return finalizeGenericAction({ asm, actionKey: "CR_CREATE", actionDef, type: "cr", input: ctxInput }, outputs, validations);
+}
+
+async function action_CR_READ(asm, input) {
+  const actionDef = getActionDef(asm, "CR_READ");
+  const targetType = String(input.targetType || "").toLowerCase();
+  if (!["feature", "epic"].includes(targetType)) die("CR_READ.targetType must be 'feature' ou 'epic'");
+  let feature = null;
+  let epic = null;
+  let crDir = null;
+  if (targetType === "feature") {
+    feature = resolveFeatureLocation(input.featureId || input.targetId);
+    if (!feature) die(`Feature directory introuvable pour ${input.featureId || input.targetId}`);
+    crDir = path.join(feature.featureDir, "CR");
+  } else {
+    epic = resolveEpicLocation(input.epicId || input.targetId, input.featureId);
+    if (!epic) die(`Epic directory introuvable pour ${input.epicId || input.targetId}`);
+    feature = { featureDir: epic.featureDir, featureId: epic.featureId };
+    crDir = path.join(epic.epicDir, "CR");
+  }
+  const filePath = findCrFile(crDir, input.crId);
+  if (!filePath) die(`Change Request introuvable: ${input.crId}`);
+  const content = fs.readFileSync(filePath, "utf8");
+  const recordId = path.basename(filePath, path.extname(filePath));
+  const ctxInput = {
+    ...input,
+    featureId: feature?.featureId,
+    epicId: epic?.epicId,
+    crRecordId: recordId,
+  };
+  const outputs = {
+    path: filePath,
+    content,
+    metadata: {
+      targetType,
+      targetId: targetType === "feature" ? feature?.featureId : epic?.epicId,
+      crId: recordId,
+    },
+  };
+  const validations = ["target_exists:pass", "read:pass"];
+  return finalizeGenericAction({ asm, actionKey: "CR_READ", actionDef, type: "cr", input: ctxInput }, outputs, validations);
+}
+
+async function action_AGP_REVIEW_CREATE(asm, input) {
+  const actionDef = getActionDef(asm, "AGP_REVIEW_CREATE");
+  const feature = resolveFeatureLocation(input.featureId);
+  if (!feature) die(`Feature directory introuvable pour ${input.featureId}`);
+  const reviewDir = path.join(feature.featureDir, "review-pass-agp");
+  ensureDir(reviewDir);
+  const status = String(input.status || "").toLowerCase();
+  if (!["pass", "fail", "pending"].includes(status)) die("status doit être pass|fail|pending");
+  const validations = ["feature_exists:pass", "status_valid:pass"];
+  const featureNumeric = extractFeatureNumeric(feature.featureId);
+  const reviewId = `FEAT${featureNumeric}-${input.date}-review-${status}_AGP`;
+  validations.push(validateRegex(asm, actionDef.naming.regex_ref, reviewId, "regex.agp_review"));
+  const filePath = path.join(reviewDir, `${reviewId}.md`);
+  const tplRef = actionDef.templates?.review_ref;
+  let content = `# ${reviewId}\n`;
+  if (tplRef) {
+    const tplValue = readTemplateValue(resolveRef(asm, tplRef));
+    if (tplValue) {
+      content = fillTemplate(tplValue, {
+        ...input,
+        reviewId,
+        featureId: feature.featureId,
+        status,
+        comments: input.comments || "",
+      });
+    }
+  }
+  ensureFile(filePath, content);
+  const ctxInput = { ...input, featureId: feature.featureId, reviewId };
+  const outputs = {
+    created: { id: reviewId, path: filePath, status, reviewer: input.reviewer },
+  };
+  validations.push("naming_valid:pass");
+  return finalizeGenericAction({ asm, actionKey: "AGP_REVIEW_CREATE", actionDef, type: "agp_review", input: ctxInput }, outputs, validations);
+}
+
+async function action_AGP_REVIEW_READ(asm, input) {
+  const actionDef = getActionDef(asm, "AGP_REVIEW_READ");
+  const feature = resolveFeatureLocation(input.featureId);
+  if (!feature) die(`Feature directory introuvable pour ${input.featureId}`);
+  const reviewDir = path.join(feature.featureDir, "review-pass-agp");
+  const filePath = findReviewFile(reviewDir, input.reviewId);
+  if (!filePath) die(`Review introuvable: ${input.reviewId}`);
+  const content = fs.readFileSync(filePath, "utf8");
+  const reviewId = path.basename(filePath, path.extname(filePath));
+  const ctxInput = { ...input, featureId: feature.featureId, reviewId };
+  const outputs = {
+    path: filePath,
+    content,
+    metadata: { featureId: feature.featureId, reviewId },
+  };
+  const validations = ["feature_exists:pass", "read:pass"];
+  return finalizeGenericAction({ asm, actionKey: "AGP_REVIEW_READ", actionDef, type: "agp_review", input: ctxInput }, outputs, validations);
+}
+
 async function action_GATE_NOTIFY(asm, input) {
   const actionDef = getActionDef(asm, "GATE_NOTIFY");
   const outputs = {
@@ -642,6 +1055,7 @@ async function main() {
   let assemblyPath = C.DEFAULT_ASSEMBLY; let profile = C.DEFAULT_PROFILE;
   for (let i = 0; i < rest.length; i++) { if (rest[i] === "--assembly") assemblyPath = rest[++i]; else if (rest[i] === "--profile") profile = rest[++i]; }
   const asm = readAssembly(assemblyPath); if (!asm) die("Assembly not loaded");
+  initializeArkaMeta(asm);
   const key = normalizeActionKey(rawKey);
   let input = {}; if (inputArg) { try { input = JSON.parse(inputArg); } catch (e) { die("Invalid JSON input: " + e.message); } }
   input = normalizeInputs(key, input);

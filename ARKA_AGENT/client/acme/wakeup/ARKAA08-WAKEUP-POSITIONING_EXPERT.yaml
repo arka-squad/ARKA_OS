@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.positioning-expert
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.positioning-expert
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/positioning-expert/
-  index: .mem/positioning-expert/index.json
+  dir: ARKA_META/.system/.mem/positioning-expert/
+  index: ARKA_META/.system/.mem/positioning-expert/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
 startup:

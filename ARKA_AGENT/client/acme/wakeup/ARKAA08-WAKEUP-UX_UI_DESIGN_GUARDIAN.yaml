@@ -5,8 +5,8 @@ use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.ux-ui-design-guardian
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.ux-ui-design-guardian
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
-  dir: .mem/ux-ui-design-guardian/
-  index: .mem/ux-ui-design-guardian/index.json
+  dir: ARKA_META/.system/.mem/ux-ui-design-guardian/
+  index: ARKA_META/.system/.mem/ux-ui-design-guardian/index.json
 context_refs:
   plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
 startup:

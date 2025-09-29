@@ -138,8 +138,8 @@ id: ARKAA08-WAKEUP-MON_AGENT
 agent_id: mon-agent-specialise
 use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.mon-agent
 memory:
-  dir: .mem/mon-agent/
-  index: .mem/mon-agent/index.json
+  dir: ARKA_META/.system/.mem/mon-agent/
+  index: ARKA_META/.system/.mem/mon-agent/index.json
 available_intents:
   - DOCUMENT_CREATE
   - REPORT_CREATE
@@ -150,7 +150,7 @@ available_intents:
 
 ### Structure
 ```
-.mem/
+ARKA_META/.system/.mem/
 ├── {agent}/
 │   ├── log/
 │   │   └── YYYY-MM-DD.jsonl    # Logs journaliers

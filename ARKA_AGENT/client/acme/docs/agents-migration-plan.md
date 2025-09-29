@@ -166,7 +166,7 @@ persona:
 | Context refs | 1/16 | 16/16 | grep project_context_ref |
 | Documentation | 30% | 100% | README + examples |
 | Tests coverage | 0% | 80% | Test files présents |
-| Memory active | 50% | 100% | .mem/{agent}/ exists |
+| Memory active | 50% | 100% | ARKA_META/.system/.mem/{agent}/ exists |
 
 ## 🛠️ Scripts d'Aide
 

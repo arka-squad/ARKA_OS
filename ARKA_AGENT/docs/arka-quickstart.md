@@ -152,7 +152,7 @@ features/
 
 ### Mémoire Persistée
 ```
-.mem/
+ARKA_META/.system/.mem/
 └── lead-dev-batisseur/
     ├── log/
     │   └── 2025-01-29.jsonl

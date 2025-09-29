@@ -1,9 +1,9 @@
 
-# ARKORE12 — Action Keys (version 2.0.0)
+# ARKORE12 — Action Keys (version 2.1.0)
 # Objectif: exposer 96 actions normalisées via des ancres réutilisables
 
 id: ARKORE12-ACTION-KEYS
-version: 2.0.0
+version: 2.1.0
 title: "Clés d’action LLM (ensemble complet)"
 summary: >
   Ensemble complet de 96 actions structurées via ancres YAML pour couvrir la
@@ -204,7 +204,7 @@ exports:
         pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.feature"
         regex_ref: "ARKORE09-NAMING-PATTERNS:regex.feature"
       create:
-        dirs: ["${feature_dir}", "${feature_dir}epics/"]
+        dirs: ["${feature_dir}", "${feature_dir}CR/", "${feature_dir}EPICS/", "${feature_dir}review-pass-agp/"]
         files: ["${feature_dir}README.md"]
       templates:
         readme_ref: "ARKORE13-TEMPLATES:feature.readme"
@@ -230,7 +230,7 @@ exports:
       paths:
         dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_dir"
       create:
-        dirs: ["${epic_dir}", "${epic_dir}US/"]
+        dirs: ["${epic_dir}", "${epic_dir}CR/", "${epic_dir}US/"]
         files: ["${epic_dir}README.md"]
       templates:
         readme_ref: "ARKORE13-TEMPLATES:epic.readme"
@@ -246,6 +246,56 @@ exports:
     EPIC_RENAME:     { <<: [*base_rename, *epic_cfg], inputs: [featureId, epicId, newId, newTitle] }
     EPIC_ARCHIVE:    { <<: [*base_archive, *epic_cfg], inputs: [featureId, epicId] }
     EPIC_STATUS:     { <<: [*base_status, *epic_cfg], inputs: [featureId, epicId, status] }
+
+    # === CHANGE REQUESTS ===
+    CR_CREATE:
+      inputs: [targetType, targetId, crId, title, date, description, featureId?, epicId?]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.change_request"
+        regex_ref: "ARKORE09-NAMING-PATTERNS:regex.change_request"
+      paths:
+        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_cr_dir"
+        epic_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_cr_dir"
+      templates:
+        cr_ref: "ARKORE13-TEMPLATES:change_request.default"
+      validations:
+        - "target_exists:pass"
+        - "naming_valid:pass"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.CR_CREATED"
+
+    CR_READ:
+      <<: *base_read
+      inputs: [targetType, targetId, crId, featureId?, epicId?]
+      paths:
+        feature_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_cr_dir"
+        epic_dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.epic_cr_dir"
+
+    # === AGP REVIEWS ===
+    AGP_REVIEW_CREATE:
+      inputs: [featureId, date, status, comments, reviewer]
+      authority_required: ["agp"]
+      naming:
+        pattern_ref: "ARKORE09-NAMING-PATTERNS:patterns.agp_review"
+        regex_ref: "ARKORE09-NAMING-PATTERNS:regex.agp_review"
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_reviews_dir"
+      templates:
+        review_ref: "ARKORE13-TEMPLATES:agp.review"
+      validations:
+        - "feature_exists:pass"
+        - "status_valid:pass"
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+        - "ARKORE16-EVENT-BUS:emit.AGP_REVIEW_CREATED"
+        - "ARKORE16-EVENT-BUS:emit.GATE_NOTIFY"
+
+    AGP_REVIEW_READ:
+      <<: *base_read
+      inputs: [featureId, reviewId]
+      paths:
+        dir_ref: "ARKORE08-PATHS-GOVERNANCE:path_templates.feature_reviews_dir"
 
     # === USER STORY ===
     US_CREATE:
@@ -548,12 +598,12 @@ exports:
 
 provides: ["action_keys", "intent_router", "prompt_macros", "action_templates", "type_configs"]
 requires:
-  - "ARKORE08-PATHS-GOVERNANCE@>=1.2.0"
-  - "ARKORE09-NAMING-PATTERNS@>=1.1.0"
+  - "ARKORE08-PATHS-GOVERNANCE@>=3.0.0"
+  - "ARKORE09-NAMING-PATTERNS@>=2.0.0"
   - "ARKORE05-EXECUTION-SPECS@>=1.0.0"
   - "ARKORE07-ARCHIVISTE-MODULE@>=1.0.0"
-  - "ARKORE13-TEMPLATES@>=1.0.0"
-  - "ARKORE14-MEMORY-OPS@>=1.0.0"
+  - "ARKORE13-TEMPLATES@>=1.2.0"
+  - "ARKORE14-MEMORY-OPS@>=1.1.0"
   - "ARKORE15-AGP-REACTIVE-CONTROL@>=1.0.0"
   - "ARKORE16-EVENT-BUS@>=1.0.0"
 contracts:
