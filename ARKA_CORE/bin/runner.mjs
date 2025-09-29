@@ -50,8 +50,7 @@ function getActionDef(asm, key) {
 }
 function ensureDir(p) { fs.mkdirSync(p, { recursive: true }); }
 function writeText(file, content) { ensureDir(path.dirname(file)); fs.writeFileSync(file, content, "utf8"); }
-function appendJSONL(file, obj) { ensureDir(path.dirname(file)); fs.appendFileSync(file, JSON.stringify(obj) + "
-", "utf8"); }
+function appendJSONL(file, obj) { ensureDir(path.dirname(file)); fs.appendFileSync(file, JSON.stringify(obj) + "\n", "utf8"); }
 function readJSON(file, def = {}) { try { return JSON.parse(fs.readFileSync(file, "utf8")); } catch { return def; } }
 function writeJSON(file, obj) { ensureDir(path.dirname(file)); fs.writeFileSync(file, JSON.stringify(obj, null, 2)); }
 function tpl(str, dict) { return str.replace(/\$\{([^}]+)}/g, (_, k) => (dict[k] ?? "")); }
@@ -117,7 +116,339 @@ function buildVars(input) {
 function usDirFromAsm(asm, vars) { const tpl = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.us_dir"); return tpl && tpl( tpl, vars ), tpl ? tpl.replace(/\$\{([^}]+)}/g, (_,k)=>vars[k]??"") : ""; }
 function ticketDirFromAsm(asm, vars) { const tpl = resolveRef(asm, "ARKORE08-PATHS-GOVERNANCE:path_templates.ticket_dir"); return tpl.replace(/\$\{([^}]+)}/g, (_,k)=>vars[k]??""); }
 
+const TYPE_ID_FIELDS = {
+  feature: "featureId",
+  epic: "epicId",
+  us: "usId",
+  ticket: "ticketId",
+  document: "documentId",
+  report: "reportId",
+  analysis: "analysisId",
+  plan: "planId",
+  contract: "contractId",
+  order: "orderId",
+  decision: "decisionId",
+};
+
+const TYPE_SCOPE_KEYS = {
+  feature: ["featureId"],
+  epic: ["featureId", "epicId"],
+  us: ["featureId", "epicId", "usId"],
+  ticket: ["featureId", "epicId", "usId", "ticketId"],
+  document: ["documentId"],
+  report: ["reportId"],
+  analysis: ["analysisId"],
+  plan: ["planId"],
+  contract: ["contractId"],
+  order: ["orderId"],
+  decision: ["decisionId"],
+};
+
+function typeFromActionKey(actionKey) {
+  if (!actionKey) return null;
+  const parts = String(actionKey).split("_");
+  return parts.length ? parts[0].toLowerCase() : null;
+}
+
+function applyPathPlaceholders(template, input) {
+  if (typeof template !== "string") return null;
+  let out = template.replace(/\{([^}]+)}/g, (_, key) => {
+    const raw = key.trim();
+    const candidates = [raw, `${raw}Id`, raw.replace(/([A-Z])/g, m => `_${m.toLowerCase()}`)];
+    for (const k of candidates) {
+      if (input[k] != null) return String(input[k]);
+    }
+    return "";
+  });
+  out = out.replace(/\$\{([^}]+)}/g, (_, expr) => {
+    const pathExp = expr.trim();
+    const v = get(input, pathExp);
+    return v == null ? "" : String(v);
+  });
+  return out;
+}
+
+function resolveResourcePath(asm, actionDef, type, input) {
+  if (!actionDef?.path_ref) return { basePath: null, resolvedPath: null };
+  const raw = resolveRef(asm, actionDef.path_ref);
+  const basePath = applyPathPlaceholders(raw, input) || raw;
+  const idField = TYPE_ID_FIELDS[type];
+  const idValue = idField ? input[idField] : undefined;
+  if (!basePath) return { basePath: null, resolvedPath: null };
+  let resolvedPath = basePath;
+  if (idValue) {
+    if (["feature", "epic", "us", "ticket"].includes(type)) {
+      resolvedPath = path.join(basePath, `${idValue}/`);
+    } else {
+      const fileType = actionDef.file_type || (type === "order" ? "json" : "md");
+      const ext = fileType === "json" ? ".json" : fileType.startsWith(".") ? fileType : ".md";
+      resolvedPath = path.join(basePath, `${idValue}${ext}`);
+    }
+  }
+  return { basePath, resolvedPath };
+}
+
+function buildScope(type, input) {
+  const keys = TYPE_SCOPE_KEYS[type] || [];
+  const scope = {};
+  for (const key of keys) {
+    if (input[key] != null) scope[key] = input[key];
+  }
+  return scope;
+}
+
+function collectRefsFromAction(actionDef) {
+  const refs = new Set();
+  const visit = value => {
+    if (!value) return;
+    if (typeof value === "string") {
+      if (value.includes(":") && !value.startsWith("file://")) refs.add(value);
+    } else if (Array.isArray(value)) {
+      value.forEach(visit);
+    } else if (typeof value === "object") {
+      for (const [k, v] of Object.entries(value)) {
+        if (k.endsWith("_ref") && typeof v === "string") refs.add(v);
+        visit(v);
+      }
+    }
+  };
+  visit(actionDef);
+  return Array.from(refs);
+}
+
+function shouldTriggerMemory(post) {
+  return (post || []).some(p => typeof p === "string" && p.startsWith("ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"));
+}
+
+function parseEventInstruction(entry, type) {
+  if (typeof entry !== "string") return null;
+  const prefix = "ARKORE16-EVENT-BUS:emit.";
+  if (!entry.startsWith(prefix)) return null;
+  const tail = entry.slice(prefix.length);
+  return tail.replace("{TYPE}", type.toUpperCase());
+}
+
+function applyInlineTemplate(str, input) {
+  if (typeof str !== "string") return str;
+  return str.replace(/\$\{([^}]+)}/g, (_, expr) => {
+    const value = get(input, expr.trim());
+    return value == null ? "" : String(value);
+  });
+}
+
+async function finalizeGenericAction(ctx, outputs, validations, status = "success") {
+  const { asm, actionKey, actionDef, type, input } = ctx;
+  const post = Array.isArray(actionDef?.post) ? actionDef.post : [];
+  const refs = collectRefsFromAction(actionDef);
+  const scope = buildScope(type, input);
+  const events = new Set();
+  let memRecord = null;
+  if (shouldTriggerMemory(post)) {
+    memRecord = memoryUpdate({
+      action_key: actionKey,
+      scope,
+      inputs: input,
+      outputs,
+      refs_resolved: refs,
+      validations,
+      status,
+    });
+    await dispatchEvent(asm, "MEMORY_UPDATED", {
+      event: "MEMORY_UPDATED",
+      ts: memRecord.ts,
+      source_brick: "ARKORE14-MEMORY-OPS",
+      profile: C.DEFAULT_PROFILE,
+      scope,
+      details: { status },
+    });
+    events.add("MEMORY_UPDATED");
+  }
+  for (const entry of post) {
+    const eventName = parseEventInstruction(entry, type);
+    if (!eventName) continue;
+    await dispatchEvent(asm, eventName, {
+      ts: new Date().toISOString(),
+      source_brick: "ARKORE12-ACTION-KEYS",
+      profile: C.DEFAULT_PROFILE,
+      scope,
+      details: { action: actionKey, outputs },
+    });
+    events.add(eventName);
+  }
+  return { ok: true, outputs, validations, events: Array.from(events) };
+}
+
 // --------------------------- Action Handlers ------------------------
+async function genericCreate(ctx) {
+  const { asm, actionDef, type, input, actionKey } = ctx;
+  const idField = TYPE_ID_FIELDS[type];
+  const idValue = idField ? input[idField] : undefined;
+  const { basePath, resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  if (basePath) ensureDir(basePath);
+  if (resolvedPath && idValue) {
+    if (["feature", "epic", "us", "ticket"].includes(type)) {
+      ensureDir(resolvedPath);
+    } else {
+      const fileType = actionDef.file_type || (type === "order" ? "json" : "md");
+      if (fileType === "json") {
+        writeJSON(resolvedPath, { ...input, created_at: new Date().toISOString(), action_key: actionKey });
+      } else {
+        if (!fs.existsSync(resolvedPath)) {
+          const title = input.title || input.name || idValue;
+          writeText(resolvedPath, input.content || `# ${title}\n`);
+        }
+      }
+    }
+  }
+  const outputs = { created: { id: idValue, path: resolvedPath || basePath } };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericRead(ctx) {
+  const { asm, actionDef, type, input } = ctx;
+  const { resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  let content = null;
+  if (resolvedPath && fs.existsSync(resolvedPath)) {
+    const stat = fs.statSync(resolvedPath);
+    if (stat.isDirectory()) content = fs.readdirSync(resolvedPath);
+    else if (actionDef.file_type === "json") content = readJSON(resolvedPath, {});
+    else content = fs.readFileSync(resolvedPath, "utf8");
+  }
+  const idField = TYPE_ID_FIELDS[type];
+  const outputs = {
+    path: resolvedPath,
+    content,
+    metadata: { type, id: idField ? input[idField] : undefined },
+  };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericUpdate(ctx) {
+  const { asm, actionDef, type, input } = ctx;
+  const updates = input.updates || {};
+  const { resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  let previous = null;
+  if (resolvedPath && fs.existsSync(resolvedPath)) {
+    if (actionDef.file_type === "json") {
+      previous = readJSON(resolvedPath, {});
+      writeJSON(resolvedPath, { ...previous, ...updates, updated_at: new Date().toISOString() });
+    } else if (typeof updates.content === "string") {
+      previous = fs.readFileSync(resolvedPath, "utf8");
+      writeText(resolvedPath, updates.content);
+    }
+  }
+  const outputs = { updated: updates, previous };
+  if (Array.isArray(actionDef.notifications)) {
+    outputs.notifications = actionDef.notifications.map(n => applyInlineTemplate(n, input));
+  }
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericDelete(ctx) {
+  const { asm, actionDef, type, input } = ctx;
+  const { resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  const idField = TYPE_ID_FIELDS[type];
+  const deletedId = idField ? input[idField] : undefined;
+  if (resolvedPath && fs.existsSync(resolvedPath)) {
+    const trashPath = `${resolvedPath}.deleted`; fs.renameSync(resolvedPath, trashPath);
+  }
+  const outputs = { deleted: deletedId, archived_to: null };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericMove(ctx) {
+  const { asm, actionDef, type, input } = ctx;
+  const { resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  const destination = input.destination || input.newUsId || input.newFeatureId || input.newEpicId;
+  const outputs = { moved_from: resolvedPath, moved_to: destination };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericRename(ctx) {
+  const { asm, actionDef, type, input } = ctx;
+  const { resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  const idField = TYPE_ID_FIELDS[type];
+  const oldId = idField ? input[idField] : undefined;
+  const newId = input.newId || input.new_id;
+  const outputs = { old_id: oldId, new_id: newId };
+  if (resolvedPath && newId) {
+    const dir = path.dirname(resolvedPath);
+    const ext = path.extname(resolvedPath);
+    const newPath = path.join(dir, `${newId}${ext}`);
+    if (fs.existsSync(resolvedPath)) fs.renameSync(resolvedPath, newPath);
+    outputs.path = newPath;
+  }
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericArchive(ctx) {
+  const { asm, actionDef, type, input } = ctx;
+  const { resolvedPath } = resolveResourcePath(asm, actionDef, type, input);
+  const idField = TYPE_ID_FIELDS[type];
+  const archiveId = `${input[idField] || type}-archive`;
+  const outputs = { archived_path: resolvedPath, archive_id: archiveId };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericStatus(ctx) {
+  const { actionDef, type, input } = ctx;
+  const outputs = {
+    old_status: input.oldStatus || null,
+    new_status: input.status || input.validation || input.cancellation_reason || null,
+  };
+  if (actionDef.outputs?.validated_by && input.validation?.validated_by) {
+    outputs.validated_by = input.validation.validated_by;
+  }
+  if (actionDef.outputs?.timestamp) outputs.timestamp = new Date().toISOString();
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+async function genericPublish(ctx) {
+  const { actionDef, type, input } = ctx;
+  const outputs = {
+    published_url: input.published_url || null,
+    version: input.version || input.channels || input.format || input.approvers || input.signatories || null,
+  };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction(ctx, outputs, validations);
+}
+
+const GENERIC_ACTION_HANDLERS = {
+  CREATE: genericCreate,
+  READ: genericRead,
+  UPDATE: genericUpdate,
+  DELETE: genericDelete,
+  MOVE: genericMove,
+  RENAME: genericRename,
+  ARCHIVE: genericArchive,
+  STATUS: genericStatus,
+  PUBLISH: genericPublish,
+};
+
+const CUSTOM_ACTION_HANDLERS = {
+  US_CREATE: action_US_CREATE,
+  TICKET_CREATE: action_TICKET_CREATE,
+  TICKET_CLOSE: action_TICKET_CLOSE,
+  DOCUMENT_CREATE: action_DOCUMENT_CREATE,
+  ORDER_CREATE: action_ORDER_CREATE,
+  DELIVERY_SUBMIT: action_DELIVERY_SUBMIT,
+  MISSION_INGEST: action_MISSION_INGEST,
+  VALIDATE_NAMING: action_VALIDATE_NAMING,
+  ARCHIVE_CAPTURE: action_ARCHIVE_CAPTURE,
+  WORKFLOW_PLAN: action_WORKFLOW_PLAN,
+  REVIEW_DELIVERABLE: action_REVIEW_DELIVERABLE,
+  GATE_NOTIFY: action_GATE_NOTIFY,
+  GATE_BROADCAST: action_GATE_BROADCAST,
+};
+
 function validateRegex(asm, regexRef, value, label) { const rxStr = resolveRef(asm, regexRef); const rx = new RegExp(rxStr); if (!rx.test(value)) die(`${label} invalid by ${regexRef}: ${value}`); return `${label}:pass`; }
 function ensureUSStructure(usDir) { ensureDir(usDir); ensureDir(path.join(usDir, "evidence")); ensureDir(path.join(usDir, "tickets")); }
 
@@ -182,7 +513,9 @@ async function action_TICKET_CLOSE(asm, input) {
   // Copy kept files to evidence (non-destructive move)
   const copied = [];
   for (const pattern of keep) {
-    const re = new RegExp("^" + pattern.replace(/[.+^${}()|[\]\]/g, "\$&").replace(/\\*/g, ".*") + "$");
+    const escaped = pattern.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+    const wildcard = escaped.replace(/\\\*/g, ".*");
+    const re = new RegExp(`^${wildcard}$`);
     if (fs.existsSync(ticketDir)) {
       for (const f of fs.readdirSync(ticketDir)) {
         if (re.test(f)) {
@@ -203,36 +536,13 @@ async function action_TICKET_CLOSE(asm, input) {
 }
 
 async function action_DOCUMENT_CREATE(asm, input) {
-  const ak = getActionDef(asm, "DOCUMENT_CREATE");
-  const dirRoot = resolveRef(asm, ak.paths.dir_ref);
-  const validations = [];
-  if (ak.naming?.regex_ref) validations.push(validateRegex(asm, ak.naming.regex_ref, input.documentId, "regex.document"));
-  ensureDir(dirRoot);
-  const fileName = `${input.documentId}.md`;
-  const filePath = path.join(dirRoot, fileName);
-  if (!fs.existsSync(filePath)) writeText(filePath, input.content || `# ${input.title || input.documentId}\n`);
-  const scope = { documentId: input.documentId };
-  const outputs = { created: { path: filePath, id: input.documentId } };
-  const refs = [ak.paths.dir_ref];
-  if (ak.naming?.regex_ref) refs.push(ak.naming.regex_ref);
-  const mem = memoryUpdate({ action_key: "DOCUMENT_CREATE", scope, inputs: input, outputs, refs_resolved: refs, validations, status: "success" });
-  await dispatchEvent(asm, "MEMORY_UPDATED", { event: "MEMORY_UPDATED", ts: mem.ts, source_brick: "ARKORE14-MEMORY-OPS", profile: C.DEFAULT_PROFILE, scope, details: { status: "success" } });
-  return { ok: true, created: outputs.created, validations, events: ["MEMORY_UPDATED"] };
+  const actionDef = getActionDef(asm, "DOCUMENT_CREATE");
+  return genericCreate({ asm, actionDef, type: "document", input, actionKey: "DOCUMENT_CREATE" });
 }
 
 async function action_ORDER_CREATE(asm, input) {
-  const ak = getActionDef(asm, "ORDER_CREATE");
-  const dirRoot = resolveRef(asm, ak.paths.dir_ref);
-  ensureDir(dirRoot);
-  const orderFile = path.join(dirRoot, `${input.orderId}.json`);
-  writeJSON(orderFile, { ...input, created_at: new Date().toISOString() });
-  const scope = { orderId: input.orderId };
-  const outputs = { order: { id: input.orderId, file: orderFile }, notifications_sent: [] };
-  const refs = [ak.paths.dir_ref];
-  const validations = ["authority:pass", "target_exists:pass", "severity_valid:pass"];
-  const mem = memoryUpdate({ action_key: "ORDER_CREATE", scope, inputs: input, outputs, refs_resolved: refs, validations, status: "success" });
-  await dispatchEvent(asm, "MEMORY_UPDATED", { event: "MEMORY_UPDATED", ts: mem.ts, source_brick: "ARKORE14-MEMORY-OPS", profile: C.DEFAULT_PROFILE, scope, details: { status: "success" } });
-  return { ok: true, order: outputs.order, notifications_sent: outputs.notifications_sent, events: ["MEMORY_UPDATED"] };
+  const actionDef = getActionDef(asm, "ORDER_CREATE");
+  return genericCreate({ asm, actionDef, type: "order", input, actionKey: "ORDER_CREATE" });
 }
 
 async function action_DELIVERY_SUBMIT(asm, input) {
@@ -250,6 +560,81 @@ async function action_DELIVERY_SUBMIT(asm, input) {
   return { ok: true, status: "processed", events: ["DELIVERY_RECEIVED","AGP_ACK_SENT","CONTROL_EVALUATED","MISSION_RETURN_ISSUED","OWNER_CONFIRMATION_REQUESTED","MEMORY_UPDATED"] };
 }
 
+async function action_MISSION_INGEST(asm, input) {
+  const actionDef = getActionDef(asm, "MISSION_INGEST");
+  const outputs = { ingested: true, record: input.mission_record };
+  const validations = ["mission_ingest:pass"];
+  return finalizeGenericAction({ asm, actionKey: "MISSION_INGEST", actionDef, type: "mission", input }, outputs, validations);
+}
+
+async function action_VALIDATE_NAMING(asm, input) {
+  const actionDef = getActionDef(asm, "VALIDATE_NAMING");
+  const validations = [];
+  const checks = actionDef.checks || {};
+  if (input.featureId && checks.feature) validations.push(validateRegex(asm, checks.feature, input.featureId, "regex.feature"));
+  if (input.epicId && checks.epic) validations.push(validateRegex(asm, checks.epic, input.epicId, "regex.epic"));
+  if (input.usId && checks.us) validations.push(validateRegex(asm, checks.us, input.usId, "regex.user_story"));
+  if (input.ticketId && checks.ticket) validations.push(validateRegex(asm, checks.ticket, input.ticketId, "regex.ticket"));
+  const outputs = { checked: Object.keys(checks), valid: true };
+  return finalizeGenericAction({ asm, actionKey: "VALIDATE_NAMING", actionDef, type: "validate", input }, outputs, validations);
+}
+
+async function action_ARCHIVE_CAPTURE(asm, input) {
+  const actionDef = getActionDef(asm, "ARCHIVE_CAPTURE");
+  const outputs = { handoff: actionDef.handoff_ref, scope: { featureId: input.featureId, epicId: input.epicId, usId: input.usId } };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction({ asm, actionKey: "ARCHIVE_CAPTURE", actionDef, type: "archive", input }, outputs, validations);
+}
+
+async function action_WORKFLOW_PLAN(asm, input) {
+  const actionDef = getActionDef(asm, "WORKFLOW_PLAN");
+  const plan = {
+    name: input.workflowName,
+    scope: input.scope || {},
+    steps: [
+      { id: "discover", role: "pmo", description: "Collecter le contexte" },
+      { id: "design", role: "agp", description: "Valider la stratégie" },
+      { id: "execute", role: "lead-dev", description: "Implémenter et tester" },
+    ],
+  };
+  const outputs = { plan };
+  const validations = ["workflow_plan:pass"];
+  return finalizeGenericAction({ asm, actionKey: "WORKFLOW_PLAN", actionDef, type: "workflow", input }, outputs, validations);
+}
+
+async function action_REVIEW_DELIVERABLE(asm, input) {
+  const actionDef = getActionDef(asm, "REVIEW_DELIVERABLE");
+  const outputs = {
+    critique: `Analyse du livrable ${input.deliverablePath} par ${input.reviewer}`,
+    suggestions: ["Clarifier les sections clés", "Ajouter une checklist de validation"],
+  };
+  const validations = ["review_performed:pass"];
+  return finalizeGenericAction({ asm, actionKey: "REVIEW_DELIVERABLE", actionDef, type: "review", input }, outputs, validations);
+}
+
+async function action_GATE_NOTIFY(asm, input) {
+  const actionDef = getActionDef(asm, "GATE_NOTIFY");
+  const outputs = {
+    gate: input.gate,
+    recipients: input.recipients,
+    status: input.status,
+  };
+  const validations = Array.isArray(actionDef.validations) ? [...actionDef.validations] : [];
+  return finalizeGenericAction({ asm, actionKey: "GATE_NOTIFY", actionDef, type: "gate", input }, outputs, validations);
+}
+
+async function action_GATE_BROADCAST(asm, input) {
+  const actionDef = getActionDef(asm, "GATE_BROADCAST");
+  const outputs = {
+    gate: input.gate,
+    decision: input.decision,
+    message: input.message,
+    audience: actionDef.broadcast_to || [],
+  };
+  const validations = ["gate_broadcast:pass"];
+  return finalizeGenericAction({ asm, actionKey: "GATE_BROADCAST", actionDef, type: "gate", input }, outputs, validations);
+}
+
 // ------------------------------ Main -------------------------------
 async function main() {
   const [,, rawKey, inputArg, ...rest] = process.argv;
@@ -261,14 +646,18 @@ async function main() {
   let input = {}; if (inputArg) { try { input = JSON.parse(inputArg); } catch (e) { die("Invalid JSON input: " + e.message); } }
   input = normalizeInputs(key, input);
 
+  const actionDef = getActionDef(asm, key);
+  const type = typeFromActionKey(key) || "generic";
   let res;
-  if (key === "US_CREATE") res = await action_US_CREATE(asm, input);
-  else if (key === "TICKET_CREATE") res = await action_TICKET_CREATE(asm, input);
-  else if (key === "TICKET_CLOSE") res = await action_TICKET_CLOSE(asm, input);
-  else if (key === "DOCUMENT_CREATE") res = await action_DOCUMENT_CREATE(asm, input);
-  else if (key === "ORDER_CREATE") res = await action_ORDER_CREATE(asm, input);
-  else if (key === "DELIVERY_SUBMIT") res = await action_DELIVERY_SUBMIT(asm, input);
-  else die(`Unsupported action_key: ${key}`);
+  const customHandler = CUSTOM_ACTION_HANDLERS[key];
+  if (typeof customHandler === "function") {
+    res = await customHandler(asm, input);
+  } else {
+    const operation = actionDef?.operation || key.split("_").slice(1).join("_");
+    const handler = GENERIC_ACTION_HANDLERS[operation];
+    if (!handler) die(`Unsupported action_key: ${key}`);
+    res = await handler({ asm, actionKey: key, actionDef, type, input });
+  }
 
   // Final compact result to stderr (stdout is event stream)
   console.error(JSON.stringify(res));
