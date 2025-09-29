@@ -8,3 +8,4 @@ ARKAA08-WAKEUP-AGP:         { file: client/acme/wakeup/ARKAA08-WAKEUP-AGP.yaml, 
 ARKAA08-WAKEUP-PMO:         { file: client/acme/wakeup/ARKAA08-WAKEUP-PMO.yaml,       version: 1.0.0, exports: [agent_id, use_profile_ref, capabilities_ref, keys_catalog_ref, memory, context_refs, startup, guardrails, contracts] }
 ARKAA08-WAKEUP-ARCHIVIST:   { file: client/acme/wakeup/ARKAA08-WAKEUP-ARCHIVIST.yaml, version: 1.0.0, exports: [agent_id, use_profile_ref, capabilities_ref, keys_catalog_ref, memory, context_refs, startup, guardrails, contracts] }
 ARKAA08-WAKEUP-GEMINI:      { file: client/acme/wakeup/ARKAA08-WAKEUP-GEMINI.yaml,    version: 1.0.0, exports: [agent_id, use_profile_ref, capabilities_ref, keys_catalog_ref, memory, context_refs, startup, guardrails, contracts] }
+ARKAA21-PROJECT-CONTEXT:    { file: client/acme/ARKAA21-PROJECT-CONTEXT.yaml,         version: 1.0.0, exports: [vars] }

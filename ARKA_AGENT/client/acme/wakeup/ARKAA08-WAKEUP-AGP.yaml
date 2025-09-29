@@ -4,11 +4,16 @@ agent_id: arka-agent15-agp
 
 use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.agp
 
+
 project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
 rules_version_ref:   ARKPR20-WAKEUP-POLICIES:exports.rules_version
 rules_index_ref:     ARKPR20-WAKEUP-POLICIES:exports.rules_index_ref
 guardrails_ref:      ARKPR20-WAKEUP-POLICIES:exports.guardrails
 
+# === INTENTS ===
+# !!!!!! IMPOORTANT !!!! prérequis obligatoire
+orchestration_rules_ref: ARKORE17-ORCHESTRATION-RULES:exports  
+# Intents
 available_intents:
   - GATE_NOTIFY
   - ORDER_CREATE

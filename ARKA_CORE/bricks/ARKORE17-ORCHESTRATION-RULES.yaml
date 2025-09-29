@@ -1,0 +1,54 @@
+id: ARKORE17-ORCHESTRATION-RULES
+version: 1.0.0
+title: "Règles d'orchestration et prérequis"
+summary: "Contraintes d'enchaînement et dépendances entre actions"
+maintainers: ["agp", "pmo"]
+
+exports:
+  agent_constraints:
+    agp:
+      FEATURE_CREATE:
+        allowed_when:
+          - condition: "OWNER_DIRECT_REQUEST"
+            priority: 1
+          - condition: "PMO_STATUS == UNAVAILABLE"
+            priority: 2
+        default: "forbidden"
+        error: "AGP doit déléguer FEATURE_CREATE au PMO (sauf demande Owner ou PMO HS)"
+    pmo: 
+      FEATURE_CREATE:
+          requires: ["ADR_EXISTS"]
+          error: "Feature nécessite ADR préalable (format: ADR-XXX-YYYY)"    
+  action_prerequisites:
+      
+    EPIC_CREATE:
+      requires: ["FEATURE_EXISTS"]
+      error: "Epic nécessite Feature parente"
+      
+    US_CREATE:
+      requires: ["EPIC_EXISTS"]
+      error: "US nécessite Epic parent"
+      
+    TICKET_CREATE:
+      requires: ["US_EXISTS"]
+      error: "Ticket nécessite US parente"
+  
+  orchestration_constraints:
+    no_self_validation: true
+    mandatory_handoffs: true
+    cross_agent_required: true
+    
+  workflow_gates:
+    before_feature: "ADR_PUBLISHED"
+    before_release: "ALL_TESTS_PASS"
+    before_archive: "EVIDENCE_COMPLETE"
+
+provides: ["action_prerequisites", "orchestration_constraints", "workflow_gates"]
+requires: ["ARKORE04-WORKFLOWS@>=1.0.0"]
+contracts:
+  invariants:
+    - "all prerequisites must reference existing actions"
+    - "no circular dependencies"
+change_policy:
+  compatibility: semver
+

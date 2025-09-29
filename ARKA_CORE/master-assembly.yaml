@@ -18,6 +18,7 @@ profiles:
       - ARKORE14-MEMORY-OPS@>=1.1.0
       - ARKORE15-AGP-REACTIVE-CONTROL@>=1.0.0
       - ARKORE16-EVENT-BUS@>=1.0.0
+      - ARKORE17-ORCHESTRATION-RULES@>=1.0.0
   dev-light:
     enable: [
       ARKORE01-HIERARCHY, ARKORE03-TEAMS-CLAUDE, ARKORE04-WORKFLOWS,
@@ -39,7 +40,7 @@ profiles:
       ARKORE06-CONTROL-MATRICES.performance_matrix.budgets.chat_ttft: "< 1.5s"
       ARKORE06-CONTROL-MATRICES.evidence_matrix.required_artifacts.S1: ["trace", "review", "security_check", "perf_report"]
 assembly:
-  order: [01, 02, 03, 04, 05, 06, 07, 08, 09, 12, 13, 14, 15, 16]
+  order: [01, 02, 03, 04, 05, 06, 07, 08, 09, 12, 13, 14, 15, 16, 17]
 contracts:
   require:
     - "ARKORE04-WORKFLOWS must reference ARKORE06-CONTROL-MATRICES.gate.criteria (no local copy)"

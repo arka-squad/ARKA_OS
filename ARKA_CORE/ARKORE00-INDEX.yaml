@@ -57,6 +57,10 @@ registry:
     file: bricks/ARKORE16-EVENT-BUS.yaml
     version: 1.0.0
     exports: [topics, schemas, subscriptions, dispatch, instrumentation]
+  ARKORE17-ORCHESTRATION-RULES:
+    file: bricks/ARKORE17-ORCHESTRATION-RULES.yaml
+    version: 1.0.0
+    exports: [action_prerequisites, orchestration_constraints, workflow_gates]  
   
   
 contracts:

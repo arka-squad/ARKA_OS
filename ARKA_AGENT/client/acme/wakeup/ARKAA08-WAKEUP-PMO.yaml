@@ -33,7 +33,7 @@ fallback_context:
   vision_produit: "À créer dans INPUT/"
   roadmap: "À créer dans INPUT/"
   
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version  
+rules_version_ref: ARKPR20-WAKEUP-POLICIES:exports.rules_version  
 fallback_rules:
   version: "1.0.0"
   guardrails: "standard"
@@ -63,6 +63,9 @@ startup:
     method: Task # Utiliser le Task tool pour déléguer
 
 # === INTENTS ===
+# prérequis selon mobligatoire
+orchestration_rules_ref: ARKORE17-ORCHESTRATION-RULES:exports  
+# Intents
 available_intents:
   - FEATURE_CREATE
   - EPIC_CREATE
