@@ -1,0 +1,392 @@
+id: ARKORE18-INTENTS-REGISTRY
+version: 0.1.0
+title: "Registre central des intents ARKA_OS"
+summary: >
+  Cartographie exhaustive des intents promptables avec leur action key,
+  capabilité, rôles autorisés, prérequis gouvernés et règles associées. Sert de
+  source unique pour la CLI et les validations CI.
+maintainers: ["agp", "pmo"]
+
+templates:
+  base_rules: &base_rules [ARKORE02-GLOBAL-RULES, ARKORE06-CONTROL-MATRICES, ARKORE17-ORCHESTRATION-RULES]
+  deliverable_create: &deliverable_create
+    slice: deliverables
+    capability: deliverable_management
+    roles_allowed: [pmo, lead_dev, agp]
+    preconditions: [CONTEXT_VALIDATED]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [draft, review]
+  analysis_create: &analysis_create
+    slice: analysis
+    capability: analysis_intelligence
+    roles_allowed: [pmo, technical_architect]
+    preconditions: [DATA_CURATED]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [dataset, report]
+  plan_create: &plan_create
+    slice: product
+    capability: product_steering
+    roles_allowed: [pmo, agp]
+    preconditions: [ADR_EXISTS]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [plan, approval]
+  governance_action: &governance_action
+    slice: governance
+    capability: architecture_governance
+    roles_allowed: [agp, technical_architect]
+    preconditions: [CONTEXT_VALIDATED]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [decision_record]
+  communication_action: &communication_action
+    slice: communication
+    capability: communication_control
+    roles_allowed: [agp, pmo]
+    preconditions: [APPROVAL_RECEIVED]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [notification_log]
+  ticket_action: &ticket_action
+    slice: delivery
+    capability: engineering_delivery
+    roles_allowed: [lead_dev, qa, devops]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [ci_logs, review]
+  reporting_action: &reporting_action
+    slice: analysis
+    capability: reporting_insights
+    roles_allowed: [pmo, agp]
+    preconditions: [DATA_CURATED]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [report, dashboard]
+
+registry:
+  ADR_CREATE:
+    <<: *governance_action
+    action_key: ADR_CREATE
+    preconditions: [ANALYSIS_COMPLETE, CONTEXT_VALIDATED]
+
+  DECISION_PUBLISH:
+    <<: *governance_action
+    action_key: DECISION_PUBLISH
+    preconditions: [EVIDENCE_COMPLETE, GATE_PASSED]
+
+  DECISION_ARCHIVE:
+    <<: *governance_action
+    action_key: DECISION_ARCHIVE
+    preconditions: [DECISION_RECORD_UPDATED]
+    evidence:
+      required: true
+      artifacts: [archive_log]
+
+  GATE_BROADCAST:
+    <<: *governance_action
+    action_key: GATE_BROADCAST
+    preconditions: [GATE_PASSED]
+
+  GATE_NOTIFY:
+    <<: *governance_action
+    action_key: GATE_NOTIFY
+    preconditions: [GATE_PASSED]
+    evidence:
+      required: false
+
+  ORDER_CREATE:
+    <<: *governance_action
+    action_key: ORDER_CREATE
+    preconditions: [CONTEXT_VALIDATED]
+
+  ORDER_ESCALATE:
+    <<: *governance_action
+    action_key: ORDER_ESCALATE
+    preconditions: [ORDER_EXISTS, RETRY_EXHAUSTED]
+
+  STRATEGY_CREATE:
+    <<: *plan_create
+    action_key: STRATEGY_CREATE
+    capability: governance_documents
+
+  ROADMAP_CREATE:
+    <<: *plan_create
+    action_key: ROADMAP_CREATE
+    capability: governance_documents
+
+  PROGRAM_CREATE:
+    <<: *plan_create
+    action_key: PROGRAM_CREATE
+    capability: governance_documents
+
+  PROCESS_DESIGN:
+    <<: *plan_create
+    action_key: PROCESS_DESIGN
+    capability: governance_documents
+
+  DELEGATION_CREATE:
+    <<: *plan_create
+    action_key: DELEGATION_CREATE
+    capability: architecture_governance
+    roles_allowed: [agp, technical_architect]
+    preconditions: [CONTEXT_VALIDATED]
+
+  PLAN_CREATE:
+    <<: *plan_create
+    action_key: PLAN_CREATE
+
+  EDITORIAL_PLAN_CREATE:
+    <<: *plan_create
+    action_key: EDITORIAL_PLAN_CREATE
+    evidence:
+      required: true
+      artifacts: [plan, editorial_calendar]
+
+  CURRICULUM_DESIGN:
+    <<: *plan_create
+    action_key: CURRICULUM_DESIGN
+    evidence:
+      required: true
+      artifacts: [curriculum_outline]
+
+  FEATURE_CREATE:
+    slice: product
+    capability: product_steering
+    roles_allowed: [pmo, agp]
+    action_key: FEATURE_CREATE
+    preconditions: [ADR_EXISTS]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [feature_readme]
+
+  EPIC_CREATE:
+    slice: product
+    capability: product_steering
+    roles_allowed: [pmo, agp]
+    action_key: EPIC_CREATE
+    preconditions: [FEATURE_EXISTS]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [epic_readme]
+
+  US_CREATE:
+    slice: product
+    capability: product_steering
+    roles_allowed: [pmo, agp, lead_dev]
+    action_key: US_CREATE
+    preconditions: [EPIC_EXISTS]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [us_readme]
+
+  WORKFLOW_PLAN:
+    slice: product
+    capability: product_steering
+    roles_allowed: [pmo, agp]
+    action_key: WORKFLOW_PLAN
+    preconditions: [FEATURE_EXISTS]
+    rules_applied: *base_rules
+    evidence:
+      required: true
+      artifacts: [workflow_schema]
+
+  DOCUMENT_CREATE:
+    <<: *deliverable_create
+    action_key: DOCUMENT_CREATE
+
+  DOCUMENT_READ:
+    <<: *deliverable_create
+    action_key: DOCUMENT_READ
+    preconditions: [DOCUMENT_EXISTS]
+    evidence:
+      required: false
+
+  DOCUMENT_UPDATE:
+    <<: *deliverable_create
+    action_key: DOCUMENT_UPDATE
+    preconditions: [DOCUMENT_EXISTS]
+
+  SPEC_CREATE:
+    <<: *deliverable_create
+    action_key: SPEC_CREATE
+    evidence:
+      required: true
+      artifacts: [spec_document]
+
+  GUIDELINES_CREATE:
+    <<: *deliverable_create
+    action_key: GUIDELINES_CREATE
+
+  CONTENT_CREATE:
+    <<: *deliverable_create
+    action_key: CONTENT_CREATE
+    evidence:
+      required: true
+      artifacts: [content_brief, review]
+
+  SURVEY_CREATE:
+    <<: *deliverable_create
+    action_key: SURVEY_CREATE
+
+  TEMPLATE_CREATE:
+    <<: *deliverable_create
+    action_key: TEMPLATE_CREATE
+
+  PUBLISH_CONTENT:
+    <<: *deliverable_create
+    action_key: PUBLISH_CONTENT
+    preconditions: [CONTENT_READY, APPROVAL_RECEIVED]
+
+  REVIEW_DELIVERABLE:
+    <<: *deliverable_create
+    action_key: REVIEW_DELIVERABLE
+    roles_allowed: [agp, pmo, technical_architect]
+    preconditions: [EVIDENCE_COMPLETE]
+
+  ARCHIVE_CAPTURE:
+    <<: *deliverable_create
+    action_key: ARCHIVE_CAPTURE
+    roles_allowed: [devops, agp]
+    preconditions: [VALIDATION_COMPLETE]
+
+  ANALYSIS_CREATE:
+    <<: *analysis_create
+    action_key: ANALYSIS_CREATE
+
+  ANALYSIS_READ:
+    <<: *analysis_create
+    action_key: ANALYSIS_READ
+    preconditions: [ANALYSIS_COMPLETE]
+    evidence:
+      required: false
+
+  ASSESSMENT_CREATE:
+    <<: *analysis_create
+    action_key: ASSESSMENT_CREATE
+
+  BENCHMARK_CREATE:
+    <<: *analysis_create
+    action_key: BENCHMARK_CREATE
+
+  AUTOMATION_CREATE:
+    <<: *analysis_create
+    action_key: AUTOMATION_CREATE
+    capability: growth_experimentation
+    roles_allowed: [lead_dev, pmo]
+    preconditions: [DATA_CURATED]
+
+  EXPERIMENT_CREATE:
+    <<: *analysis_create
+    action_key: EXPERIMENT_CREATE
+    capability: growth_experimentation
+    roles_allowed: [lead_dev, pmo]
+
+  INSIGHT_GENERATE:
+    <<: *analysis_create
+    action_key: INSIGHT_GENERATE
+
+  MODEL_CREATE:
+    <<: *analysis_create
+    action_key: MODEL_CREATE
+
+  SIMULATION_RUN:
+    <<: *analysis_create
+    action_key: SIMULATION_RUN
+
+  SOURCING:
+    <<: *analysis_create
+    action_key: SOURCING
+    preconditions: [CONTEXT_VALIDATED]
+
+  TEST_RUN:
+    <<: *analysis_create
+    action_key: TEST_RUN
+    capability: growth_experimentation
+    roles_allowed: [lead_dev, qa]
+    preconditions: [BUILD_SUCCESS]
+
+  REPORT_CREATE:
+    <<: *reporting_action
+    action_key: REPORT_CREATE
+
+  REPORT_UPDATE:
+    <<: *reporting_action
+    action_key: REPORT_UPDATE
+    preconditions: [REPORT_EXISTS]
+
+  DASHBOARD_CREATE:
+    <<: *reporting_action
+    action_key: DASHBOARD_CREATE
+
+  DASHBOARD_UPDATE:
+    <<: *reporting_action
+    action_key: DASHBOARD_UPDATE
+    preconditions: [REPORT_EXISTS]
+
+  MESSAGE_SEND:
+    <<: *communication_action
+    action_key: MESSAGE_SEND
+
+  NOTIFICATION_SEND:
+    <<: *communication_action
+    action_key: NOTIFICATION_SEND
+
+  TICKET_CREATE:
+    <<: *ticket_action
+    action_key: TICKET_CREATE
+    preconditions: [US_EXISTS]
+
+  TICKET_UPDATE:
+    <<: *ticket_action
+    action_key: TICKET_UPDATE
+    preconditions: [TICKET_EXISTS]
+
+  TICKET_CLOSE:
+    <<: *ticket_action
+    action_key: TICKET_CLOSE
+    preconditions: [TESTS_PASS, CODE_REVIEWED]
+
+  TICKET_VALIDATE:
+    <<: *ticket_action
+    action_key: TICKET_VALIDATE
+    preconditions: [TESTS_WRITTEN, TESTS_PASS]
+    roles_allowed: [qa]
+
+  DELIVERY_SUBMIT:
+    <<: *ticket_action
+    action_key: DELIVERY_SUBMIT
+    preconditions: [BUILD_SUCCESS, LINT_PASS]
+
+  VALIDATE_NAMING:
+    <<: *ticket_action
+    action_key: VALIDATE_NAMING
+    preconditions: [FILE_EXISTS]
+    roles_allowed: [devops, technical_architect]
+
+provides: ["intent_registry"]
+requires:
+  - "ARKORE12-ACTION-KEYS@>=2.1.0"
+  - "ARKORE17-ORCHESTRATION-RULES@>=2.0.0"
+  - "ARKORE19-PRECONDITIONS-DEFS@>=0.1.0"
+  - "CAPAMAP01-CAPABILITY-MATRIX@>=0.1.0"
+contracts:
+  invariants:
+    - "every intent declares an action_key"
+    - "preconditions reference ARKORE19 definitions"
+    - "capability values map to CAPAMAP01 entries"
+    - "roles_allowed list is not empty"
+  schema: "jsonschema://arka/intent-registry/v1"
+change_policy:
+  compatibility: semver

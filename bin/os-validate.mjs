@@ -109,7 +109,7 @@ async function parseYaml(filePath) {
   const marker = content.indexOf('\n## ');
   let trimmed = marker !== -1 ? content.slice(0, marker) : content;
   trimmed = trimmed.replace(/:\s*\{/g, ': {');
-  const script = 'require "yaml"; require "json"; input = STDIN.read; data = YAML.safe_load(input, permitted_classes: [], aliases: true) || {}; STDOUT.write(JSON.generate(data))';
+  const script = 'require "yaml"; require "json"; input = STDIN.read; data = YAML.safe_load(input, permitted_classes: [Time], aliases: true) || {}; STDOUT.write(JSON.generate(data))';
   try {
     const stdout = await runRuby(script, [], trimmed);
     return stdout ? JSON.parse(stdout) : {};
