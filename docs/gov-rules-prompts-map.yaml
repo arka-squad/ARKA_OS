@@ -1,0 +1,94 @@
+id: AUDIT_GOV_RULES_PROMPTS_MAP
+version: 0.1.0
+generated_at: 2024-06-05T00:00:00Z
+summary: "Cartographie statique des règles de gouvernance (hors Event Bus) et des intents promptés"
+rules_summary:
+  - id: ARKORE02-GLOBAL-RULES
+    version: 1.1.0
+    provides: [principles, isolation, emergency, anti_drift]
+    key_points:
+      - "Anti-dérive: validation croisée, interdiction d'auto-validation"
+      - "Transformations mandatées ADR -> Feature"
+  - id: ARKORE06-CONTROL-MATRICES
+    version: 1.0.0
+    provides: [authority_matrix, escalation_matrix, gate.criteria]
+    key_points:
+      - "Autorité Owner/AGP et limitations PMO"
+      - "Budgets de performance et evidence matrix"
+  - id: ARKORE15-AGP-REACTIVE-CONTROL
+    version: 1.0.0
+    provides: [runtime, events, zones, action_map]
+    key_points:
+      - "Boucle AGP sans pause avec ACK immédiat"
+      - "Contrôles evidence/perf et escalade owner conditionnelle"
+  - id: ARKORE17-ORCHESTRATION-RULES
+    version: 2.0.0
+    provides: [action_prerequisites, orchestration_constraints, workflow_gates]
+    key_points:
+      - "Prérequis par rôle hérités (all/common/role)"
+      - "Gates avant feature, release, archive, production"
+  - id: ARKORE12-ACTION-KEYS
+    version: 2.1.0
+    provides: [action_templates, type_configs, action_keys]
+    key_points:
+      - "96 actions normalisées basées sur ancres"
+      - "Post-hooks obligatoires vers MEMORY_UPDATE"
+intent_summary:
+  - agent_id: agp
+    default_intent: ADR_CREATE
+    declared_intents:
+      - ADR_CREATE
+      - DECISION_ARCHIVE
+      - DECISION_PUBLISH
+      - DOCUMENT_CREATE
+      - DOCUMENT_READ
+      - GATE_BROADCAST
+      - GATE_NOTIFY
+      - ORDER_CREATE
+      - ORDER_ESCALATE
+      - REVIEW_DELIVERABLE
+    sources:
+      wakeup_matrix: wakeup-intents.matrix.yaml:5-11
+      expert_file: ARKA_AGENT/client/acme/experts/ARKA_AGENT15-agp.yaml:1-30
+      wakeup_file: ARKA_AGENT/client/acme/wakeup/ARKAA08-WAKEUP-AGP.yaml
+    orchestration_prereqs: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs.agp
+  - agent_id: arka-agent00-archivist
+    default_intent: ARCHIVE_CAPTURE
+    declared_intents:
+      - ARCHIVE_CAPTURE
+      - PLAN_WORKFLOW
+      - REVIEW_DELIVERABLE
+    sources:
+      wakeup_matrix: wakeup-intents.matrix.yaml:12-18
+      expert_file: ARKA_AGENT/client/acme/experts/ARKA_AGENT00-archivist.yaml
+      wakeup_file: ARKA_AGENT/client/acme/wakeup/ARKAA08-WAKEUP-ARCHIVIST.yaml:1-21
+    orchestration_prereqs: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs.devops
+    notes:
+      - "Wakeup matrix déclare intents vide → désalignement avec wakeup file"
+  - agent_id: lead-dev-batisseur
+    default_intent: TICKET_CREATE
+    declared_intents:
+      - DELIVERY_SUBMIT
+      - DOCUMENT_CREATE
+      - DOCUMENT_UPDATE
+      - REPORT_CREATE
+      - TICKET_CLOSE
+      - TICKET_CREATE
+      - TICKET_UPDATE
+    sources:
+      wakeup_matrix: wakeup-intents.matrix.yaml:110-116
+      expert_file: ARKA_AGENT/client/acme/experts/ARKA_AGENT04-lead-dev-batisseur.yaml:1-33
+      wakeup_file: ARKA_AGENT/client/acme/wakeup/ARKAA08-WAKEUP-LEAD_DEV_BATISSEUR.yaml
+    orchestration_prereqs: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs.lead_dev
+  - agent_id: pmo
+    default_intent: FEATURE_CREATE
+    declared_intents:
+      - DELEGATION_CREATE
+      - DOCUMENT_READ
+      - REPORT_CREATE
+      - WORKFLOW_PLAN
+    sources:
+      wakeup_matrix: wakeup-intents.matrix.yaml:159-165
+      expert_file: ARKA_AGENT/client/acme/experts/ARKA_AGENT15-arka-product-manager-officer.yaml
+      wakeup_file: ARKA_AGENT/client/acme/wakeup/ARKAA08-WAKEUP-PMO.yaml
+    orchestration_prereqs: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs.pmo
