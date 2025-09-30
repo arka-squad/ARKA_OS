@@ -1,0 +1,97 @@
+id: ARKA_OS-GOV_RULES_MAP
+version: 0.1.0
+generated_for: AUDIT_GOV_RULES_PROMPTS
+sources:
+  - id: ARKORE02-GLOBAL-RULES
+    ref: ARKA_CORE/bricks/ARKORE02-GLOBAL-RULES.yaml
+    provides: [principles, anti_drift, isolation, emergency]
+  - id: ARKORE06-CONTROL-MATRICES
+    ref: ARKA_CORE/bricks/ARKORE06-CONTROL-MATRICES.yaml
+    provides: [authority_matrix, escalation_matrix, evidence_matrix, performance_matrix, gate.criteria]
+  - id: ARKORE12-ACTION-KEYS
+    ref: ARKA_CORE/bricks/ARKORE12-ACTION-KEYS.yaml
+    provides: [action_keys, intent_router, prompt_macros]
+  - id: ARKORE15-AGP-REACTIVE-CONTROL
+    ref: ARKA_CORE/bricks/ARKORE15-AGP-REACTIVE-CONTROL.yaml
+    provides: [runtime, events, zones, action_map]
+  - id: ARKORE17-ORCHESTRATION-RULES
+    ref: ARKA_CORE/bricks/ARKORE17-ORCHESTRATION-RULES.yaml
+    provides: [intents.prereqs, orchestration_constraints, workflow_gates]
+  - id: WAKEUP_INTENTS_MATRIX
+    ref: wakeup-intents.matrix.yaml
+    provides: [agent_default_intents, available_intents]
+
+intent_catalog_snapshot:
+  router:
+    source: ARKORE12-ACTION-KEYS:exports.intent_router
+    keys:
+      - CREATE_FEATURE
+      - CREATE_EPIC
+      - CREATE_USER_STORY
+      - CREATE_TICKET
+      - CLOSE_TICKET
+      - RECEIVE_MISSION
+      - DELIVERY_SUBMIT
+      - ORDER_CREATE
+      - ORDER_CLOSE
+      - PLAN_WORKFLOW
+      - REVIEW_DELIVERABLE
+  orchestration_prereqs:
+    source: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs
+    roles:
+      common: [MEMORY_UPDATE, VALIDATE_NAMING, CHECK_PATHS, EPIC_CREATE, US_CREATE, TICKET_CREATE, DOCUMENT_UPDATE, REPORT_PUBLISH]
+      pmo: [FEATURE_CREATE, WORKFLOW_PLAN]
+      agp: [DECISION_PUBLISH, ORDER_ESCALATE]
+      lead_dev: [TICKET_CLOSE, DELIVERY_SUBMIT]
+      technical_architect: [ADR_CREATE, PLAN_CREATE]
+      devops: [ARCHIVE_CAPTURE, VALIDATE_NAMING]
+      qa: [TICKET_VALIDATE]
+  wakeup_defaults:
+    source: wakeup-intents.matrix.yaml:matrix
+    sample_defaults:
+      agp: ADR_CREATE
+      pmo: FEATURE_CREATE
+      technical_architect: ADR_CREATE
+      qa_testeur: TICKET_VALIDATE
+      gemini_owner_sourcing: SOURCING
+
+identified_gaps:
+  missing_action_keys:
+    description: intents déclarés côté wake-up/prérequis mais absents d'ARKORE12-ACTION-KEYS.action_keys
+    intents:
+      - ADR_CREATE
+      - ASSESSMENT_CREATE
+      - AUTOMATION_CREATE
+      - BENCHMARK_CREATE
+      - CONTENT_CREATE
+      - CURRICULUM_DESIGN
+      - DASHBOARD_CREATE
+      - DASHBOARD_UPDATE
+      - DELEGATION_CREATE
+      - EDITORIAL_PLAN_CREATE
+      - EXPERIMENT_CREATE
+      - GUIDELINES_CREATE
+      - INSIGHT_GENERATE
+      - MESSAGE_SEND
+      - MODEL_CREATE
+      - NOTIFICATION_SEND
+      - PROCESS_DESIGN
+      - PROGRAM_CREATE
+      - PUBLISH_CONTENT
+      - ROADMAP_CREATE
+      - SIMULATION_RUN
+      - SOURCING
+      - SPEC_CREATE
+      - STRATEGY_CREATE
+      - SURVEY_CREATE
+      - TEMPLATE_CREATE
+      - TEST_RUN
+      - TICKET_VALIDATE
+  broken_references:
+    - description: ARKORE17 nomenclature pointe vers ARKORE08-PATHS-GOVERNANCE:exports.* inexistants
+      expected: [exports.features, exports.epics, exports.user_stories, exports.tickets]
+      available: [paths.features_root, paths.epics_root, paths.user_stories_root, paths.tickets_root]
+  normalization_warnings:
+    - description: prérequis ARKORE17 utilisent des chaînes combinées (FEATURE_EXISTS,AGP_PASS_EXISTS) au lieu de listes structurées
+    - description: statuts référencés sans définition centralisée (GATE_PASSED, RETRY_EXHAUSTED, REPORT_VALIDATED)
+
