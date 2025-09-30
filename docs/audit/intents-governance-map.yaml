@@ -1,0 +1,215 @@
+id: intents-governance-map
+generated_from: ARKA_OS audit
+intents:
+  - name: ADR_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: ANALYSIS_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: ANALYSIS_READ
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: ARCHIVE_CAPTURE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: ASSESSMENT_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: AUTOMATION_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: BENCHMARK_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: CONTENT_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: CURRICULUM_DESIGN
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: DASHBOARD_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: DASHBOARD_UPDATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: DECISION_ARCHIVE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: DECISION_PUBLISH
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: DELEGATION_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: DELIVERY_SUBMIT
+    defined_in_action_keys: true
+    routed_via_prompt: true
+    router_target: "DELIVERY_SUBMIT"
+  - name: DOCUMENT_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: DOCUMENT_READ
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: DOCUMENT_UPDATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: EDITORIAL_PLAN_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: EPIC_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: EXPERIMENT_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: FEATURE_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: GATE_BROADCAST
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: GATE_NOTIFY
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: GUIDELINES_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: INSIGHT_GENERATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: MESSAGE_SEND
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: MODEL_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: NOTIFICATION_SEND
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: ORDER_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: true
+    router_target: "ORDER_CREATE"
+  - name: ORDER_ESCALATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: PLAN_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: PROCESS_DESIGN
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: PROGRAM_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: PUBLISH_CONTENT
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: REPORT_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: REPORT_UPDATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: REVIEW_DELIVERABLE
+    defined_in_action_keys: true
+    routed_via_prompt: true
+    router_target: "REVIEW_DELIVERABLE"
+  - name: ROADMAP_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: SIMULATION_RUN
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: SOURCING
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: SPEC_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: STRATEGY_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: SURVEY_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: TEMPLATE_CREATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: TEST_RUN
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: TICKET_CLOSE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: TICKET_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: TICKET_UPDATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: TICKET_VALIDATE
+    defined_in_action_keys: false
+    routed_via_prompt: false
+    router_target: null
+  - name: US_CREATE
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: VALIDATE_NAMING
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
+  - name: WORKFLOW_PLAN
+    defined_in_action_keys: true
+    routed_via_prompt: false
+    router_target: null
