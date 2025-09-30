@@ -9,9 +9,10 @@ profiles:
       - from: "../ARKA_CORE/build/core.assembly.yaml"
       - from: "../ARKA_PROFIL/build/profiles.bundle.yaml"
     enable:
-      # Wake-Ups (4 agents)
+      # Wake-Ups Core (5 agents)
       - ARKAA08-WAKEUP-AGP@>=1.0.0
       - ARKAA08-WAKEUP-PMO@>=1.0.0
+      - ARKAA08-WAKEUP-SPEC-WRITER@>=1.0.0
       - ARKAA08-WAKEUP-ARCHIVIST@>=1.0.0
       - ARKAA08-WAKEUP-GEMINI@>=1.0.0
       # Ajout des wakeups pour les agents spécialisés (numérotés selon le catalogue)

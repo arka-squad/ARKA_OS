@@ -1,26 +1,36 @@
 id: ARKAA08-WAKEUP-LEAD_DEV_BATISSEUR
-version: 1.0.0
-agent_id: arka-agent04-lead-dev-batisseur
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.lead-dev-batisseur
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.lead-dev-batisseur
-keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+version: 3.0.0  # Pattern v3
+agent_id: lead-dev-batisseur
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.lead_dev
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.lead-dev-batisseur
+expert_ref: client/acme/experts/ARKA_AGENT04-lead-dev-batisseur.yaml
+
+# === CONTEXTE MISSION ===
+project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
+client_ref: clients/acme.yaml
+
+# === MÉMOIRE INSTANCE ===
 memory:
-  dir: ARKA_META/.system/.mem/lead-dev-batisseur/
-  index: ARKA_META/.system/.mem/lead-dev-batisseur/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+  dir: ARKA_META/.system/.mem/lead-dev/
+  index: ARKA_META/.system/.mem/lead-dev/index.json
+
+# === DÉMARRAGE ===
 startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
   default_intent: TICKET_CREATE
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
-available_intents:
-  - TICKET_CREATE
-  - PLAN_WORKFLOW
-  - REVIEW_DELIVERABLE
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
-contracts:
-  invariants:
-    - resolves(use_profile_ref)
-    - resolves(capabilities_ref)
-    - resolves(keys_catalog_ref)
+  dispatch_mode: implementation_mode  # Focus sur l'implémentation
+
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Implémentation réelle sans mock"
+  constraints:
+    - "No mock APIs"
+    - "No fictive data"
+    - "Real implementations only"
+  tech_stack:
+    - "According to client environment"
+    - "Test-driven development"
+    - "Clean architecture"

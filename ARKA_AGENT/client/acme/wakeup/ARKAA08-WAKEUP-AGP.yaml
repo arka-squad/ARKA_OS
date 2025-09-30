@@ -1,43 +1,32 @@
 id: ARKAA08-WAKEUP-AGP
-version: 1.0.0
-agent_id: arka-agent15-agp
+version: 3.0.0  # Pattern v3
+agent_id: agp
 
+# === RÉFÉRENCES SYSTÈME ===
 use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.agp
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.agp
+expert_ref: client/acme/experts/ARKA_AGENT15-agp.yaml
 
-
+# === CONTEXTE MISSION ===
 project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
-rules_version_ref:   ARKPR20-WAKEUP-POLICIES:exports.rules_version
-rules_index_ref:     ARKPR20-WAKEUP-POLICIES:exports.rules_index_ref
-guardrails_ref:      ARKPR20-WAKEUP-POLICIES:exports.guardrails
+client_ref: clients/acme.yaml
 
-# === INTENTS ===
-# !!!!!!IMPOORTANT !!!! prérequis obligatoire
-orchestration_rules_ref: ARKORE17-ORCHESTRATION-RULES:exports  
-# Intents
-available_intents:
-  - GATE_NOTIFY
-  - ORDER_CREATE
-  - DECISION_PUBLISH
-  - DOCUMENT_CREATE
-include_common_intents_ref: ARKPR20-WAKEUP-POLICIES:exports.intents_common
-
+# === MÉMOIRE INSTANCE ===
 memory:
   dir: ARKA_META/.system/.mem/agp/
   index: ARKA_META/.system/.mem/agp/index.json
 
-providers:
-  chat_multi_provider_ref: ARKAA21-PROJECT-CONTEXT:vars.providers.chat_multi_provider
-  must_log_provider_ref:   ARKAA21-PROJECT-CONTEXT:vars.providers.must_log_provider
+# === DÉMARRAGE ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: ADR_CREATE
+  dispatch_mode: validation_first  # AGP valide avant d'agir
 
-context:
-  docs_ref:
-    vision_produit:     ARKAA21-PROJECT-CONTEXT:vars.docs.vision_produit
-    roadmap:            ARKAA21-PROJECT-CONTEXT:vars.docs.roadmap
-    vision_slice:       ARKAA21-PROJECT-CONTEXT:vars.docs.vision_slice_template
-    pitch_deck:         ARKAA21-PROJECT-CONTEXT:vars.docs.pitch_deck
-    plan_directeur:     ARKAA21-PROJECT-CONTEXT:vars.docs.plan_directeur
-
-  governance_ref:      ARKAA21-PROJECT-CONTEXT:vars.governance
-  dor_dod_ref:         ARKAA21-PROJECT-CONTEXT:vars.dor_dod
-  language_tone_ref:   ARKAA21-PROJECT-CONTEXT:vars.language_tone
-  workflow_canvas_ref: ARKAA21-PROJECT-CONTEXT:vars.workflow_canvas
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Validation architecture et gouvernance stricte"
+  priority_gates:
+    - "No mock APIs"
+    - "No fictive data"
+    - "Evidence required"

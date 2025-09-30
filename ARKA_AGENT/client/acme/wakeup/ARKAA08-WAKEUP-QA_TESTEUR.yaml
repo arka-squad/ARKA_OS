@@ -1,26 +1,36 @@
 id: ARKAA08-WAKEUP-QA_TESTEUR
-version: 1.0.0
-agent_id: arka-agent13-qa-testeur
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.qa-testeur
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.qa-testeur
-keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+version: 3.0.0  # Pattern v3
+agent_id: qa-testeur
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.qa
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.qa-testeur
+expert_ref: client/acme/experts/ARKA_AGENT13-qa-testeur.yaml
+
+# === CONTEXTE MISSION ===
+project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
+client_ref: clients/acme.yaml
+
+# === MÉMOIRE INSTANCE ===
 memory:
-  dir: ARKA_META/.system/.mem/qa-testeur/
-  index: ARKA_META/.system/.mem/qa-testeur/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+  dir: ARKA_META/.system/.mem/qa/
+  index: ARKA_META/.system/.mem/qa/index.json
+
+# === DÉMARRAGE ===
 startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
-  default_intent: TICKET_CREATE
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
-available_intents:
-  - TICKET_CREATE
-  - PLAN_WORKFLOW
-  - REVIEW_DELIVERABLE
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
-contracts:
-  invariants:
-    - resolves(use_profile_ref)
-    - resolves(capabilities_ref)
-    - resolves(keys_catalog_ref)
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: TICKET_VALIDATE
+  dispatch_mode: validation_mode  # Focus validation
+
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Validation rigoureuse sans données fictives"
+  testing_approach:
+    - "Risk-based testing"
+    - "85-90% coverage target"
+    - "Real data only"
+  priorities:
+    - "Evidence pack contribution"
+    - "Pipeline validation"
+    - "Event Bus monitoring"

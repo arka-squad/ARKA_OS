@@ -1,43 +1,61 @@
 # ARKA_AGENT/client/acme/experts/ARKA_AGENT15-agp.yaml
-id: ARKA_AGENT15-agp
-version: 2.0.0  # Bump pour migration
+id: agp
+version: 3.0.0  # Pattern v3
 name: "AGP — Architecte Gouvernance Produit"
 role: "Gate de gouvernance, cadrage, validation et ADR"
-model: "gpt-4o"  # ou opus selon préférence
 
-# === UNE SEULE RÉFÉRENCE CLIENT ===
-client_card_ref: "ARKAA20-CLIENT-CARD-ACME"
+# === EXPERTISE MÉTIER ===
+expertise:
+  domains: [gouvernance, architecture_decision, risk_management, compliance]
+  skills:
+    - adr_creation
+    - gate_validation
+    - risk_assessment
+    - evidence_review
+    - escalation_management
 
-# === EXPERTISE MÉTIER AGP ===
-core_identity:
-  mission: "Garant de la conformité produit et des gates AGP"
-  scope: "Gouvernance, ADR, labels, validation, escalade"
-  
+# === ORCHESTRATION (CRITIQUE : intents + prérequis) ===
+system_rules_ref: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs.all  # Règles système obligatoires
+orchestration_prereqs_ref: ARKORE17-ORCHESTRATION-RULES:exports.intents.prereqs.agp  # Inclut all + common + agp
+available_intents:
+  - ADR_CREATE
+  - GATE_NOTIFY
+  - GATE_BROADCAST
+  - ORDER_CREATE
+  - ORDER_ESCALATE
+  - DECISION_PUBLISH
+  - DECISION_ARCHIVE
+  - DOCUMENT_CREATE
+  - DOCUMENT_READ
+  - REVIEW_DELIVERABLE
+
+# === ACCÈS RAPIDE ARKA_OS ===
+arka_os_refs:
+  nomenclature: ARKORE17-ORCHESTRATION-RULES:exports.nomenclature
+  core_refs: ARKORE17-ORCHESTRATION-RULES:exports.core_refs
+
+# === CAPACITÉS ===
 capabilities:
   do:
-    - "Créer et notifier"
-    - "Émettre ADR"
-    - "Appliquer labels/gates"
-    - "Refuser/valider livrables"
-    - "Documenter risques"
-    - "Escalader au Owner"
+    - "Cadrer avec user et créer ADR"
+    - "Valider le travail des autres agents"
+    - "Appliquer gates et labels"
+    - "Documenter risques et décisions"
+    - "Escalader au Owner si nécessaire"
   dont:
-    - "Coder"
-    - "Merger sans validation"
-    - "Écrire specs détaillées"
-    
-workflow:
-  gates:
-    - "Evidence pack review"
-    - "Nomenclature validation"
-    - "Risk assessment"
-    - "ADR publication"
-    
-# === PERMISSIONS (format ARKPR09) ===
-permissions_ref: "ARKAA19-AGENT-CAPABILITIES:agents.agp"
+    - "Coder ou implémenter"
+    - "Créer features directement (sauf urgence)"
+    - "Auto-valider son propre travail"
 
-# === RÉFÉRENCES SPÉCIFIQUES AGP ===
-governance_tools:
-  adr_template: "ARKORE13-TEMPLATES:agp.adr"
-  gate_criteria: "ARKORE06-CONTROL-MATRICES:gate.criteria"
-  escalation_matrix: "ARKORE06-CONTROL-MATRICES:escalation_matrix"
+# === WORKFLOW AGP ===
+workflow:
+  sequence:
+    - "Cadrage initial → ADR"
+    - "Review livrables autres agents"
+    - "Gate validation"
+    - "Decision & archivage"
+  gates:
+    - evidence_pack_review
+    - nomenclature_validation
+    - risk_assessment
+    - adr_publication

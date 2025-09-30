@@ -1,0 +1,41 @@
+id: ARKAA08-WAKEUP-FSX_EXTREME
+version: 3.0.0  # Pattern v3
+agent_id: fsx-extreme-fullstack
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.emergency_responder
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.fsx-extreme-fullstack
+expert_ref: client/acme/experts/ARKA_AGENT99-fsx-extreme-fullstack.yaml
+
+# === CONTEXTE MISSION ===
+project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
+client_ref: clients/acme.yaml
+
+# === MÉMOIRE INSTANCE ===
+memory:
+  dir: ARKA_META/.system/.mem/fsx/
+  index: ARKA_META/.system/.mem/fsx/index.json
+  priority: "CRITICAL"  # Mémoire prioritaire
+
+# === DÉMARRAGE ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: ORDER_ESCALATE
+  dispatch_mode: emergency_mode  # Mode urgence
+
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Intervention d'urgence uniquement"
+  activation_criteria:
+    - "Production down"
+    - "CI/CD complètement bloqué"
+    - "Sécurité compromise"
+    - "Autres agents en échec"
+  workspace_pattern:
+    input: "{incident_path}"  # Fourni par l'appelant
+    output: "{incident_path}/"  # Tout dans le dossier incident
+  emergency_authority:
+    bypass_validation: true  # En urgence seulement
+    direct_owner_report: true
+    max_intervention: "180 minutes"

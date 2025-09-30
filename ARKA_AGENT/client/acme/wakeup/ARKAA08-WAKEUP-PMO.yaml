@@ -1,91 +1,31 @@
-# ARKAA08-WAKEUP-PMO.yaml
 id: ARKAA08-WAKEUP-PMO
-version: 2.0.0
-agent_id: arka-agent02-pmo-orchestrator
+version: 3.0.0  # Pattern v3
+agent_id: pmo
 
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.pmo
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.pmo
+expert_ref: client/acme/experts/ARKA_AGENT15-arka-product-manager-officer.yaml
 
-# === CONTRÔLES STRICTS (NOUVEAU) ===
-loading_policy:
-  auto_resolve_refs: false      # Pas de chargement auto
-  forbidden_deep_scan: true     # INTERDIT de scanner
-  allowed_refs_only: true       # Seulement les refs déclarées
-
-access_controls:
-  repository_scan: forbidden
-  cross_agent_access: forbidden
-  fallback_on_missing: "STOP"   # Si ref manque → STOP
-
-validation:
-  require_explicit_intent: true
-  block_undeclared_actions: true
-  missing_ref_policy: "report_and_stop"
-
-# === SI RÉFÉRENCE MANQUE ===
-on_missing_reference:
-  action: "STOP"
-  message: "Reference ${ref} not found. Wake-up incomplete."
-  suggest: "Create missing reference or remove from wake-up"
-  
-# === RÉFÉRENCES (avec fallback) ===
-# Si ces refs n'existent pas → utiliser les valeurs inline
+# === CONTEXTE MISSION ===
 project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
-fallback_context:
-  vision_produit: "À créer dans INPUT/"
-  roadmap: "À créer dans INPUT/"
-  
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:exports.rules_version  
-fallback_rules:
-  version: "1.0.0"
-  guardrails: "standard"
+client_ref: clients/acme.yaml
 
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.pmo-orchestrator
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.pmo-orchestrator
-keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
-
-
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:exports.rules_index_ref
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:exports.guardrails
-
-# === MÉMOIRE ===
+# === MÉMOIRE INSTANCE ===
 memory:
-
   dir: ARKA_META/.system/.mem/pmo/
   index: ARKA_META/.system/.mem/pmo/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
-  templates_provider_ref: ARKAA11-TEMPLATES-PROVIDER
-  experts_cards_dir: client/acme/experts/ # fiches YAML des sous-agents (liens)
+
+# === DÉMARRAGE ===
 startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
-  default_intent: US_CREATE
-  dispatch_mode: subtasks_only # PMO ne code pas ; délègue aux sous-agents
-  delegation:
-    method: Task # Utiliser le Task tool pour déléguer
-
-# === INTENTS ===
-# prérequis selon mobligatoire
-orchestration_rules_ref: ARKORE17-ORCHESTRATION-RULES:exports  
-available_intents:
-  - FEATURE_CREATE
-  - EPIC_CREATE
-  - US_CREATE
-  - WORKFLOW_PLAN
-  - REPORT_CREATE
-  
-include_common_intents_ref: ARKPR20-WAKEUP-POLICIES:exports.intents_common
-
-# === CONTEXTE (références uniquement) ===
-context:
-  docs_ref:
-    vision_produit: ARKAA21-PROJECT-CONTEXT:vars.docs.vision_produit
-    roadmap: ARKAA21-PROJECT-CONTEXT:vars.docs.roadmap
-    plan_directeur: ARKAA21-PROJECT-CONTEXT:vars.docs.plan_directeur
-    
-  governance_ref: ARKAA21-PROJECT-CONTEXT:vars.governance
-  dor_dod_ref: ARKAA21-PROJECT-CONTEXT:vars.dor_dod
-
-# === STARTUP ===
-startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities]
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
   default_intent: FEATURE_CREATE
-  dispatch_mode: orchestrator_only
+  dispatch_mode: orchestrator_only  # PMO orchestre, délègue via Task
+
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Orchestration agile et coordination équipe"
+  delegation:
+    method: "Task tool"
+    priority_agents: ["lead_dev", "technical_architect", "devops"]

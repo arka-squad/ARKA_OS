@@ -1,47 +1,145 @@
 id: ARKORE17-ORCHESTRATION-RULES
-version: 1.0.0
-title: "Règles d'orchestration et prérequis"
-summary: "Contraintes d'enchaînement et dépendances entre actions"
+version: 2.0.0  # Bump pour nouvelle structure
+title: "Règles d'orchestration et prérequis par rôle"
+summary: "Contraintes d'enchaînement et dépendances entre actions, organisées par rôle"
 maintainers: ["agp", "pmo"]
 
 exports:
-  agent_constraints:
-    agp:
-      FEATURE_CREATE:
-        allowed_when:
-          - condition: "OWNER_DIRECT_REQUEST"
-            priority: 1
-          - condition: "PMO_STATUS == UNAVAILABLE"
-            priority: 2
-        default: "forbidden"
-        error: "AGP doit déléguer FEATURE_CREATE au PMO (sauf demande Owner ou PMO HS)"
-    pmo: 
-      FEATURE_CREATE:
+  # === LIENS VERS ARKA_OS ===
+  core_refs:
+    action_keys: ARKORE12-ACTION-KEYS:exports
+    memory_ops: ARKORE14-MEMORY-OPS:operations
+    event_bus: ARKORE16-EVENT-BUS:topics
+    control_matrices: ARKORE06-CONTROL-MATRICES:exports
+    paths: ARKORE08-PATHS-GOVERNANCE:exports
+    naming: ARKORE09-NAMING-PATTERNS:exports
+    templates: ARKORE13-TEMPLATES:exports
+    workflows: ARKORE04-WORKFLOWS:exports
+    execution_specs: ARKORE05-EXECUTION-SPECS:exports
+
+  # === ACCÈS RAPIDE NOMENCLATURE ===
+  nomenclature:
+    feature_path: ARKORE08-PATHS-GOVERNANCE:exports.features
+    epic_path: ARKORE08-PATHS-GOVERNANCE:exports.epics
+    us_path: ARKORE08-PATHS-GOVERNANCE:exports.user_stories
+    ticket_path: ARKORE08-PATHS-GOVERNANCE:exports.tickets
+    naming_patterns: ARKORE09-NAMING-PATTERNS:exports.patterns
+    id_format: ARKORE09-NAMING-PATTERNS:exports.id_format
+    branch_patterns: ARKORE09-NAMING-PATTERNS:exports.branches
+
+  # === PRÉREQUIS PAR RÔLE (économie de tokens) ===
+  intents:
+    prereqs:
+      # === ALL : Obligatoire pour TOUS les agents ===
+      all: &all_agents_prereqs
+        # Règles de base ARKA_OS
+        MEMORY_UPDATE:
+          automatic: true
+          after_each_action: true
+          ref: ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE
+        VALIDATE_NAMING:
+          before_create: true
+          ref: ARKORE09-NAMING-PATTERNS:exports
+        CHECK_PATHS:
+          before_move: true
+          ref: ARKORE08-PATHS-GOVERNANCE:exports
+        # Interdictions strictes
+        FORBIDDEN:
+          mock_apis: true
+          fictive_data: true
+          auto_validation: true
+          error: "Violations des règles fondamentales ARKA_OS"
+
+      # Prérequis communs métier (hérités par les rôles)
+      common: &common_prereqs
+        <<: *all_agents_prereqs
+        EPIC_CREATE:
+          requires: ["FEATURE_EXISTS,AGP_PASS_EXISTS"]
+          error: "Epic nécessite Feature parente et validation" 
+        US_CREATE:
+          requires: ["EPIC_EXISTS"]
+          error: "US nécessite Epic parent"
+        TICKET_CREATE:
+          requires: ["US_EXISTS"]
+          error: "Ticket nécessite US parente"
+        DOCUMENT_UPDATE:
+          requires: ["DOCUMENT_EXISTS"]
+          error: "Document doit exister pour update"
+        REPORT_PUBLISH:
+          requires: ["REPORT_VALIDATED"]
+          error: "Report doit être validé avant publication"
+
+      # PMO : orchestration + common
+      pmo: &pmo_prereqs
+        <<: *common_prereqs
+        FEATURE_CREATE:
           requires: ["ADR_EXISTS"]
-          error: "Feature nécessite ADR préalable (format: ADR-XXX-YYYY)"    
-  action_prerequisites:
-      
-    EPIC_CREATE:
-      requires: ["FEATURE_EXISTS"]
-      error: "Epic nécessite Feature parente"
-      
-    US_CREATE:
-      requires: ["EPIC_EXISTS"]
-      error: "US nécessite Epic parent"
-      
-    TICKET_CREATE:
-      requires: ["US_EXISTS"]
-      error: "Ticket nécessite US parente"
-  
+          error: "Feature nécessite ADR préalable (ADR-XXX-YYYY)"
+        WORKFLOW_PLAN:
+          requires: ["FEATURE_EXISTS"]
+          error: "Workflow nécessite Feature active"
+
+      # AGP : gouvernance + common
+      agp: &agp_prereqs
+        <<: *common_prereqs
+        DECISION_PUBLISH:
+          requires: ["GATE_PASSED", "EVIDENCE_COMPLETE"]
+          error: "Decision nécessite gate validé et evidence pack"
+        ORDER_ESCALATE:
+          requires: ["ORDER_EXISTS", "RETRY_EXHAUSTED"]
+          error: "Escalade nécessite ordre et tentatives épuisées"
+
+      # Lead Dev : technique + common
+      lead_dev: &lead_dev_prereqs
+        <<: *common_prereqs
+        TICKET_CLOSE:
+          requires: ["TESTS_PASS", "CODE_REVIEWED"]
+          error: "Ticket nécessite tests verts et code review"
+        DELIVERY_SUBMIT:
+          requires: ["BUILD_SUCCESS", "LINT_PASS"]
+          error: "Delivery nécessite build et lint ok"
+
+      # Technical Architect : architecture + common
+      technical_architect: &tech_architect_prereqs
+        <<: *common_prereqs
+        ADR_CREATE:
+          requires: ["ANALYSIS_COMPLETE"]
+          error: "ADR nécessite analyse complète"
+        PLAN_CREATE:
+          requires: ["ADR_EXISTS"]
+          error: "Plan nécessite ADR approuvé"
+
+      # DevOps : infra + common
+      devops: &devops_prereqs
+        <<: *common_prereqs
+        ARCHIVE_CAPTURE:
+          requires: ["VALIDATION_COMPLETE"]
+          error: "Archive nécessite validation complète"
+        VALIDATE_NAMING:
+          requires: ["FILE_EXISTS"]
+          error: "Validation nécessite fichier existant"
+
+      # QA : tests + common
+      qa: &qa_prereqs
+        <<: *common_prereqs
+        TICKET_VALIDATE:
+          requires: ["TESTS_WRITTEN", "TESTS_PASS"]
+          error: "Validation nécessite tests écrits et passants"
+
+      # Autres rôles suivront le même pattern...
+
+  # === CONTRAINTES D'ORCHESTRATION ===
   orchestration_constraints:
-    no_self_validation: true
-    mandatory_handoffs: true
-    cross_agent_required: true
-    
+    no_self_validation: true      # Pas d'auto-validation
+    mandatory_handoffs: true       # Passages de main obligatoires
+    cross_agent_required: true     # Validation croisée requise
+
+  # === WORKFLOW GATES ===
   workflow_gates:
     before_feature: "ADR_PUBLISHED"
     before_release: "ALL_TESTS_PASS"
     before_archive: "EVIDENCE_COMPLETE"
+    before_production: "OWNER_APPROVAL"
 
 provides: ["action_prerequisites", "orchestration_constraints", "workflow_gates"]
 requires: ["ARKORE04-WORKFLOWS@>=1.0.0"]

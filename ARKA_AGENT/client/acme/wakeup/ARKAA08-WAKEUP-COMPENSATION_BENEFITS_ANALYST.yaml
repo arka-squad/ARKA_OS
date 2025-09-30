@@ -1,0 +1,22 @@
+id: ARKAA08-WAKEUP-COMPENSATION_BENEFITS_ANALYST
+version: 3.0.0  # Pattern v3
+agent_id: compensation-benefits-analyst
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.hr_analyst
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.compensation-benefits-analyst
+expert_ref: client/acme/experts/ARKA_AGENT22-compensation-benefits-analyst.yaml
+
+# === CONTEXTE MISSION ===
+# Pas de contexte projet spécifique - agent générique
+
+# === MÉMOIRE INSTANCE ===
+memory:
+  dir: ARKA_META/.system/.mem/compensation-benefits/
+  index: ARKA_META/.system/.mem/compensation-benefits/index.json
+
+# === DÉMARRAGE ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: ANALYSIS_CREATE
+  dispatch_mode: compensation_analysis_mode

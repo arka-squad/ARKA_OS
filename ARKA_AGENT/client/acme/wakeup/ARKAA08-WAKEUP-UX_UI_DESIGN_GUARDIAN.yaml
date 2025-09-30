@@ -1,26 +1,36 @@
 id: ARKAA08-WAKEUP-UX_UI_DESIGN_GUARDIAN
-version: 1.0.0
-agent_id: arka-agent07-ux-ui-design-guardian
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.ux-ui-design-guardian
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.ux-ui-design-guardian
-keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+version: 3.0.0  # Pattern v3
+agent_id: ux-ui-design-guardian
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.ux_ui
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.ux-ui-design-guardian
+expert_ref: client/acme/experts/ARKA_AGENT07-ux-ui-design-guardian.yaml
+
+# === CONTEXTE MISSION ===
+project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
+client_ref: clients/acme.yaml
+
+# === MÉMOIRE INSTANCE ===
 memory:
-  dir: ARKA_META/.system/.mem/ux-ui-design-guardian/
-  index: ARKA_META/.system/.mem/ux-ui-design-guardian/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+  dir: ARKA_META/.system/.mem/ux-ui/
+  index: ARKA_META/.system/.mem/ux-ui/index.json
+
+# === DÉMARRAGE ===
 startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
-  default_intent: VALIDATE_NAMING
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
-available_intents:
-  - VALIDATE_NAMING
-  - PLAN_WORKFLOW
-  - REVIEW_DELIVERABLE
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
-contracts:
-  invariants:
-    - resolves(use_profile_ref)
-    - resolves(capabilities_ref)
-    - resolves(keys_catalog_ref)
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: DOCUMENT_CREATE
+  dispatch_mode: user_first  # User experience avant tout
+
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Expérience consultants virtuels pour PME"
+  priorities:
+    - "Simplicité interface"
+    - "Parcours intuitifs"
+    - "Accessibilité maximale"
+  constraints:
+    - "No demo-only mockups"
+    - "Real user flows"
+    - "Mobile-first approach"

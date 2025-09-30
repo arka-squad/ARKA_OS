@@ -1,26 +1,35 @@
 id: ARKAA08-WAKEUP-TECHNICAL_ARCHITECT
-version: 1.0.0
-agent_id: arka-agent05-technical-architect
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.technical-architect
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.technical-architect
-keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+version: 3.0.0  # Pattern v3
+agent_id: technical-architect
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.technical_architect
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.technical_architect
+expert_ref: client/acme/experts/ARKA_AGENT05-technical-architect.yaml
+
+# === CONTEXTE MISSION ===
+project_context_ref: ARKAA21-PROJECT-CONTEXT:vars
+client_ref: clients/acme.yaml
+
+# === MÉMOIRE INSTANCE ===
 memory:
   dir: ARKA_META/.system/.mem/technical-architect/
   index: ARKA_META/.system/.mem/technical-architect/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+
+# === DÉMARRAGE ===
 startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
-  default_intent: FEATURE_CREATE
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
-available_intents:
-  - FEATURE_CREATE
-  - PLAN_WORKFLOW
-  - REVIEW_DELIVERABLE
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
-contracts:
-  invariants:
-    - resolves(use_profile_ref)
-    - resolves(capabilities_ref)
-    - resolves(keys_catalog_ref)
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: ADR_CREATE
+  dispatch_mode: design_first  # Architecture avant implémentation
+
+# === ADAPTATIONS MISSION ARKA-LABS ===
+mission_context:
+  project: "Construction Arka-labs avec ARKA_OS"
+  focus: "Architecture scalable et maintenable"
+  priorities:
+    - "Séparation des responsabilités"
+    - "Patterns réutilisables"
+    - "Performance optimale"
+  constraints:
+    - "No over-engineering"
+    - "KISS principle"

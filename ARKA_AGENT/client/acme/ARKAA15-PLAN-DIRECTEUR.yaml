@@ -3,10 +3,10 @@ version: 1.0.0
 title: "Plan Directeur (vision, objectifs produit, actions à mener, roadmap)"
 exports:
   director_plan:
-    vision_ref:     "https://exemple.com/vision"           # http(s)://, file:// ou chemin relatif
-    objectifs_ref:  "file://${WORKDIR}/docs/objectifs.md"  # ou tableau si tu veux plusieurs sources
-    actions_ref:    "file://${WORKDIR}/docs/actions.md"
-    roadmap_ref:    "https://exemple.com/roadmap"
+    vision_ref:     "file://ARKA_META/docs/vision.md"      # Vision produit Arka
+    objectifs_ref:  "file://ARKA_META/docs/objectifs.md"   # Objectifs Q1-Q4 2025
+    actions_ref:    "file://ARKA_META/docs/roadmap.md"     # Actions via roadmap détaillée
+    roadmap_ref:    "file://ARKA_META/docs/roadmap.md"     # Roadmap 2025 complète
     owners:         ["owner","pmo"]
     last_review_policy: monthly   # weekly|monthly|quarterly
   prompt_shortcuts:

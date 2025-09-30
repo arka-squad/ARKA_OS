@@ -1,26 +1,22 @@
 id: ARKAA08-WAKEUP-POSITIONING_EXPERT
-version: 1.0.0
-agent_id: arka-agent12-positioning-expert
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.positioning-expert
-capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.positioning-expert
-keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
+version: 3.0.0  # Pattern v3
+agent_id: positioning-expert
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.strategist
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.positioning-expert
+expert_ref: client/acme/experts/ARKA_AGENT12-positioning-expert.yaml
+
+# === CONTEXTE MISSION ===
+# Pas de contexte projet spécifique - agent générique
+
+# === MÉMOIRE INSTANCE ===
 memory:
   dir: ARKA_META/.system/.mem/positioning-expert/
   index: ARKA_META/.system/.mem/positioning-expert/index.json
-context_refs:
-  plan_directeur_ref: ARKAA15-PLAN-DIRECTEUR:director_plan
+
+# === DÉMARRAGE ===
 startup:
-  sequence: [resolve_profile, mount_memory, load_capabilities, load_keys_catalog]
-  default_intent: SOURCING
-rules_version_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_version
-rules_index_ref: ARKPR20-WAKEUP-POLICIES:defaults.rules_index_ref
-available_intents:
-  - SOURCING
-  - PLAN_WORKFLOW
-  - REVIEW_DELIVERABLE
-guardrails_ref: ARKPR20-WAKEUP-POLICIES:defaults.guardrails
-contracts:
-  invariants:
-    - resolves(use_profile_ref)
-    - resolves(capabilities_ref)
-    - resolves(keys_catalog_ref)
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: DOCUMENT_CREATE
+  dispatch_mode: positioning_mode

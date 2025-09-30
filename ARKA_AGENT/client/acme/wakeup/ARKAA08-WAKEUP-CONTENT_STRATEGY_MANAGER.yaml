@@ -1,0 +1,22 @@
+id: ARKAA08-WAKEUP-CONTENT_STRATEGY_MANAGER
+version: 3.0.0  # Pattern v3
+agent_id: content-strategy-manager
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.content_strategist
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.content-strategy-manager
+expert_ref: client/acme/experts/ARKA_AGENT26-content-strategy-manager.yaml
+
+# === CONTEXTE MISSION ===
+# Pas de contexte projet spécifique - agent générique
+
+# === MÉMOIRE INSTANCE ===
+memory:
+  dir: ARKA_META/.system/.mem/content-strategy/
+  index: ARKA_META/.system/.mem/content-strategy/index.json
+
+# === DÉMARRAGE ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: CONTENT_CREATE
+  dispatch_mode: content_strategy_mode

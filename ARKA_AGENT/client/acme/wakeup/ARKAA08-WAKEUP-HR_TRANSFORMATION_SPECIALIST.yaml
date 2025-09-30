@@ -1,0 +1,22 @@
+id: ARKAA08-WAKEUP-HR_TRANSFORMATION_SPECIALIST
+version: 3.0.0  # Pattern v3
+agent_id: hr-transformation-specialist
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.hr_strategist
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.hr-transformation-specialist
+expert_ref: client/acme/experts/ARKA_AGENT20-hr-transformation-specialist.yaml
+
+# === CONTEXTE MISSION ===
+# Pas de contexte projet spécifique - agent générique
+
+# === MÉMOIRE INSTANCE ===
+memory:
+  dir: ARKA_META/.system/.mem/hr-transformation/
+  index: ARKA_META/.system/.mem/hr-transformation/index.json
+
+# === DÉMARRAGE ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: ANALYSIS_CREATE
+  dispatch_mode: transformation_mode

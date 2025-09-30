@@ -1,0 +1,22 @@
+id: ARKAA08-WAKEUP-LEARNING_DEVELOPMENT_STRATEGIST
+version: 3.0.0  # Pattern v3
+agent_id: learning-development-strategist
+
+# === RÉFÉRENCES SYSTÈME ===
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.hr_educator
+capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.learning-development-strategist
+expert_ref: client/acme/experts/ARKA_AGENT23-learning-development-strategist.yaml
+
+# === CONTEXTE MISSION ===
+# Pas de contexte projet spécifique - agent générique
+
+# === MÉMOIRE INSTANCE ===
+memory:
+  dir: ARKA_META/.system/.mem/learning-development/
+  index: ARKA_META/.system/.mem/learning-development/index.json
+
+# === DÉMARRAGE ===
+startup:
+  sequence: [resolve_profile, mount_memory, load_capabilities, load_expert]
+  default_intent: ANALYSIS_CREATE
+  dispatch_mode: learning_strategy_mode
