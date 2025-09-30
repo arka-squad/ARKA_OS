@@ -1,0 +1,129 @@
+id: ARKORE19-PRECONDITIONS-DEFS
+version: 0.1.0
+title: "Catalogue gouverné des prérequis ARKA_OS"
+summary: >
+  Normalise les préconditions utilisées par les intents et rôles. Chaque
+  entrée décrit l'état attendu, les évidences associées et les règles de
+  gouvernance qui les encadrent.
+maintainers: ["agp", "pmo"]
+
+definitions:
+  ANALYSIS_COMPLETE:
+    description: "Analyse validée avec synthèse et recommandations finalisées"
+    evidence: ["report", "dataset", "review"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.analysis", "ARKORE17-ORCHESTRATION-RULES:intents.prereqs"]
+  ADR_EXISTS:
+    description: "Un ADR approuvé est disponible dans le répertoire governance/decisions"
+    evidence: ["decision_record"]
+    governed_by: ["ARKORE02-GLOBAL-RULES:invariants", "ARKORE06-CONTROL-MATRICES:evidence_matrix.levels.S2"]
+  APPROVAL_RECEIVED:
+    description: "Approbation explicite reçue du rôle autorisé (AGP/Owner)"
+    evidence: ["approval_log", "signature"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:authority_matrix", "ARKORE17-ORCHESTRATION-RULES:workflow_gates"]
+  BUILD_SUCCESS:
+    description: "Pipeline de build exécuté avec succès sur la branche de travail"
+    evidence: ["ci/build.log", "status:success"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.delivery"]
+  CODE_REVIEWED:
+    description: "Code relu et approuvé par un pair autorisé"
+    evidence: ["review_report", "diff_link"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.review"]
+  CONTENT_READY:
+    description: "Contenu relu, validé et prêt pour publication"
+    evidence: ["editorial_checklist", "approval_log"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:evidence_matrix.required_artifacts.S1"]
+  CONTEXT_VALIDATED:
+    description: "Contexte projet vérifié (stakeholders, contraintes, vision)"
+    evidence: ["context.md", "stakeholder_signoff"]
+    governed_by: ["ARKORE02-GLOBAL-RULES:invariants", "ARKORE06-CONTROL-MATRICES:evidence_matrix.base"]
+  DATA_CURATED:
+    description: "Sources de données nettoyées et alignées avec le scope d'analyse"
+    evidence: ["dataset_manifest", "quality_report"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.data"]
+  DECISION_RECORD_UPDATED:
+    description: "Dernier ADR ou décision lié mis à jour dans governance/decisions"
+    evidence: ["adr.md", "changelog"]
+    governed_by: ["ARKORE02-GLOBAL-RULES:invariants"]
+  DOCUMENT_EXISTS:
+    description: "Document référencé présent et indexé"
+    evidence: ["document_path", "metadata.json"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.deliverables.documents_root"]
+  EVIDENCE_COMPLETE:
+    description: "Evidence pack complet (trace, review, perf) disponible"
+    evidence: ["trace", "review", "perf"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:evidence_matrix.required_artifacts.S1"]
+  EPIC_EXISTS:
+    description: "Epic parent existant et conforme au pattern"
+    evidence: ["epic_dir", "README.md"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.epics_root", "ARKORE09-NAMING-PATTERNS:regex.epic"]
+  FEATURE_EXISTS:
+    description: "Feature parent existant et conforme"
+    evidence: ["feature_dir", "README.md"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.features_root", "ARKORE09-NAMING-PATTERNS:regex.feature"]
+  FILE_EXISTS:
+    description: "Fichier ciblé disponible sur le disque"
+    evidence: ["file_path"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:validations"]
+  GATE_PASSED:
+    description: "Gate de contrôle franchi avec validation croisée"
+    evidence: ["gate_log", "approvals"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:control_matrix.gates"]
+  LINT_PASS:
+    description: "Analyse statique et lint passés avec succès"
+    evidence: ["ci/lint.log", "status:success"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.delivery"]
+  ORDER_EXISTS:
+    description: "Ordre de gouvernance existant dans governance/orders"
+    evidence: ["order.json"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.governance.orders_root"]
+  PLAN_EXISTS:
+    description: "Plan référencé présent dans deliverables/plans"
+    evidence: ["plan_dir", "README.md"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.deliverables.plans_root"]
+  REPORT_EXISTS:
+    description: "Rapport référencé présent et versionné"
+    evidence: ["report_dir", "metadata.json"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.deliverables.reports_root"]
+  REPORT_VALIDATED:
+    description: "Rapport relu et validé par la gouvernance"
+    evidence: ["validation_log", "signoff"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:evidence_matrix.required_artifacts.S2"]
+  RETRY_EXHAUSTED:
+    description: "Toutes les tentatives de résolution ont été effectuées"
+    evidence: ["retry_log"]
+    governed_by: ["ARKORE15-AGP-REACTIVE-CONTROL:action_map"]
+  TESTS_PASS:
+    description: "Campagnes de tests automatisés et manuels vertes"
+    evidence: ["ci/tests.log", "coverage"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.qa"]
+  TESTS_WRITTEN:
+    description: "Tests écrits couvrant les cas critiques"
+    evidence: ["tests/", "coverage_report"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:quality_matrix.qa"]
+  TICKET_EXISTS:
+    description: "Ticket référencé présent dans la hiérarchie US/{ticket}"
+    evidence: ["ticket_dir"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.tickets_root"]
+  US_EXISTS:
+    description: "User Story parente existante"
+    evidence: ["us_dir", "README.md"]
+    governed_by: ["ARKORE08-PATHS-GOVERNANCE:paths.user_stories_root"]
+  VALIDATION_COMPLETE:
+    description: "Validation croisée effectuée et archivée"
+    evidence: ["validation_report"]
+    governed_by: ["ARKORE06-CONTROL-MATRICES:control_matrix.validation"]
+
+provides: ["preconditions_catalog"]
+requires:
+  - "ARKORE02-GLOBAL-RULES@>=1.0.0"
+  - "ARKORE06-CONTROL-MATRICES@>=1.0.0"
+  - "ARKORE08-PATHS-GOVERNANCE@>=3.0.0"
+  - "ARKORE17-ORCHESTRATION-RULES@>=2.0.0"
+contracts:
+  invariants:
+    - "all definitions provide description, evidence and governed_by"
+    - "identifiers are SCREAMING_SNAKE_CASE"
+    - "references point to existing ARKORE bricks"
+  schema: "jsonschema://arka/preconditions/v1"
+change_policy:
+  compatibility: semver

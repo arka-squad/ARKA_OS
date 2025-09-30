@@ -27,7 +27,6 @@ exports:
         - "parent_exists:pass"
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_CREATED"
 
     base_read: &base_read
       operation: READ
@@ -52,7 +51,6 @@ exports:
         previous: { type: object }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_UPDATED"
 
     base_delete: &base_delete
       operation: DELETE
@@ -65,7 +63,6 @@ exports:
         archived_to: { type: string }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_DELETED"
 
     base_move: &base_move
       operation: MOVE
@@ -79,7 +76,6 @@ exports:
         moved_to: { type: string }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_MOVED"
 
     base_rename: &base_rename
       operation: RENAME
@@ -93,7 +89,6 @@ exports:
         new_id: { type: string }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_RENAMED"
 
     base_archive: &base_archive
       operation: ARCHIVE
@@ -107,7 +102,6 @@ exports:
         archive_id: { type: string }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_ARCHIVED"
 
     base_status: &base_status
       operation: STATUS
@@ -120,7 +114,6 @@ exports:
         new_status: { type: string }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.STATUS_CHANGED"
 
     base_publish: &base_publish
       operation: PUBLISH
@@ -134,7 +127,6 @@ exports:
         version: { type: string }
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
-        - "ARKORE16-EVENT-BUS:emit.{TYPE}_PUBLISHED"
 
   type_configs:
     feature_cfg: &feature_cfg
@@ -263,6 +255,7 @@ exports:
         - "naming_valid:pass"
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+      event_hooks:
         - "ARKORE16-EVENT-BUS:emit.CR_CREATED"
 
     CR_READ:
@@ -288,6 +281,7 @@ exports:
         - "status_valid:pass"
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+      event_hooks:
         - "ARKORE16-EVENT-BUS:emit.AGP_REVIEW_CREATED"
         - "ARKORE16-EVENT-BUS:emit.GATE_NOTIFY"
 
@@ -363,7 +357,17 @@ exports:
         handoff_ref: "ARKORE07-ARCHIVISTE-MODULE:archive.handoff"
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+      event_hooks:
         - "ARKORE16-EVENT-BUS:emit.TICKET_CLOSED"
+
+    TICKET_VALIDATE:
+      <<: [*base_status, *ticket_cfg]
+      inputs: [featureId, epicId, usId, ticketId, status, notes?]
+      allowed_status: ["validated", "rejected"]
+      validations:
+        - "exists:pass"
+        - "permissions:status"
+        - "tests_complete:pass"
 
     # === DOCUMENTS ===
     DOCUMENT_CREATE:
@@ -378,6 +382,42 @@ exports:
     DOCUMENT_STATUS:  { <<: [*base_status, *document_cfg], inputs: [documentId, status] }
     DOCUMENT_PUBLISH: { <<: [*base_publish, *document_cfg], inputs: [documentId, version] }
 
+    SPEC_CREATE:
+      <<: [*base_create, *document_cfg]
+      inputs: [documentId, title, scope, stakeholders, acceptance]
+      metadata:
+        category: spec
+
+    GUIDELINES_CREATE:
+      <<: [*base_create, *document_cfg]
+      inputs: [documentId, title, scope, audience, policies]
+      metadata:
+        category: guidelines
+
+    CONTENT_CREATE:
+      <<: [*base_create, *document_cfg]
+      inputs: [documentId, channel, title, brief, content]
+      metadata:
+        category: content_asset
+
+    SURVEY_CREATE:
+      <<: [*base_create, *document_cfg]
+      inputs: [documentId, title, audience, questions]
+      metadata:
+        category: survey
+
+    TEMPLATE_CREATE:
+      <<: [*base_create, *document_cfg]
+      inputs: [documentId, template_type, title, placeholders]
+      metadata:
+        category: template
+
+    PUBLISH_CONTENT:
+      <<: [*base_publish, *document_cfg]
+      inputs: [documentId, channel, version]
+      metadata:
+        category: content_asset
+
     # === REPORTS ===
     REPORT_CREATE:
       <<: [*base_create, *report_cfg]
@@ -390,6 +430,18 @@ exports:
     REPORT_ARCHIVE:  { <<: [*base_archive, *report_cfg], inputs: [reportId] }
     REPORT_STATUS:   { <<: [*base_status, *report_cfg], inputs: [reportId, status] }
     REPORT_PUBLISH:  { <<: [*base_publish, *report_cfg], inputs: [reportId, channels] }
+
+    DASHBOARD_CREATE:
+      <<: [*base_create, *report_cfg]
+      inputs: [reportId, title, widgets, refresh_policy]
+      metadata:
+        category: dashboard
+
+    DASHBOARD_UPDATE:
+      <<: [*base_update, *report_cfg]
+      inputs: [reportId, updates]
+      metadata:
+        category: dashboard
 
     # === ANALYSIS ===
     ANALYSIS_CREATE:
@@ -404,6 +456,60 @@ exports:
     ANALYSIS_STATUS:  { <<: [*base_status, *analysis_cfg], inputs: [analysisId, status] }
     ANALYSIS_PUBLISH: { <<: [*base_publish, *analysis_cfg], inputs: [analysisId, format] }
 
+    ASSESSMENT_CREATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, subject, criteria, scorings, recommendations]
+      metadata:
+        category: assessment
+
+    BENCHMARK_CREATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, scope, peers, metrics, summary]
+      metadata:
+        category: benchmark
+
+    AUTOMATION_CREATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, process, triggers, actions, safeguards]
+      metadata:
+        category: automation
+
+    EXPERIMENT_CREATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, hypothesis, variants, metrics, plan]
+      metadata:
+        category: experiment
+
+    INSIGHT_GENERATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, dataset, findings, implications]
+      metadata:
+        category: insight
+
+    MODEL_CREATE:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, name, inputs, outputs, constraints]
+      metadata:
+        category: model
+
+    SIMULATION_RUN:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, scenario, assumptions, iterations, results]
+      metadata:
+        category: simulation
+
+    SOURCING:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, needs, suppliers, evaluation, recommendation]
+      metadata:
+        category: sourcing
+
+    TEST_RUN:
+      <<: [*base_create, *analysis_cfg]
+      inputs: [analysisId, suite, environment, results, followups]
+      metadata:
+        category: test_execution
+
     # === PLANS ===
     PLAN_CREATE:
       <<: [*base_create, *plan_cfg]
@@ -416,6 +522,48 @@ exports:
     PLAN_ARCHIVE:    { <<: [*base_archive, *plan_cfg], inputs: [planId] }
     PLAN_STATUS:     { <<: [*base_status, *plan_cfg], inputs: [planId, status] }
     PLAN_PUBLISH:    { <<: [*base_publish, *plan_cfg], inputs: [planId, approvers] }
+
+    STRATEGY_CREATE:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, horizon, objectives, levers]
+      metadata:
+        category: strategy
+
+    ROADMAP_CREATE:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, timeframe, milestones]
+      metadata:
+        category: roadmap
+
+    PROGRAM_CREATE:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, owner, streams, success_metrics]
+      metadata:
+        category: program
+
+    PROCESS_DESIGN:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, scope, steps, raci]
+      metadata:
+        category: process
+
+    EDITORIAL_PLAN_CREATE:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, channels, cadence, themes]
+      metadata:
+        category: editorial_plan
+
+    CURRICULUM_DESIGN:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, audience, modules, outcomes]
+      metadata:
+        category: curriculum
+
+    DELEGATION_CREATE:
+      <<: [*base_create, *plan_cfg]
+      inputs: [planId, title, delegate, scope, authority]
+      metadata:
+        category: delegation
 
     # === CONTRACTS ===
     CONTRACT_CREATE:
@@ -499,6 +647,15 @@ exports:
       inputs: [decisionId]
       retention: "permanent"
 
+    # === ADR ===
+    ADR_CREATE:
+      <<: [*base_create, *decision_cfg]
+      inputs: [decisionId, title, context, status?, options?, decision, rationale]
+      authority_required: ["agp", "technical_architect"]
+      template_ref: "ARKORE13-TEMPLATES:agp.adr"
+      outputs:
+        record_path: { type: string }
+
     # === GATES ===
     GATE_NOTIFY:
       inputs: [gate, scope, status, recipients]
@@ -506,6 +663,7 @@ exports:
       notifications_ref: "ARKORE15-AGP-REACTIVE-CONTROL:action_map.ACK"
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+      event_hooks:
         - "ARKORE16-EVENT-BUS:emit.GATE_NOTIFIED"
 
     GATE_BROADCAST:
@@ -514,7 +672,27 @@ exports:
       broadcast_to: ["all_agents"]
       post:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+      event_hooks:
         - "ARKORE16-EVENT-BUS:emit.GATE_BROADCASTED"
+
+    # === COMMUNICATION ===
+    MESSAGE_SEND:
+      operation: NOTIFY
+      inputs: [channel, subject, message, recipients]
+      validations:
+        - "recipients_valid:pass"
+      outputs:
+        receipt: { type: object }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
+
+    NOTIFICATION_SEND:
+      operation: NOTIFY
+      inputs: [topic, payload, severity?, recipients?]
+      outputs:
+        notification_id: { type: string }
+      post:
+        - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
     # === SUPPORT (actions existantes) ===
     DELIVERY_SUBMIT:
@@ -575,17 +753,67 @@ exports:
         - "ARKORE14-MEMORY-OPS:operations.MEMORY_UPDATE"
 
   intent_router:
-    CREATE_FEATURE: "FEATURE_CREATE"
-    CREATE_EPIC: "EPIC_CREATE"
-    CREATE_USER_STORY: "US_CREATE"
-    CREATE_TICKET: "TICKET_CREATE"
+    ADR_CREATE: "ADR_CREATE"
+    ANALYSIS_CREATE: "ANALYSIS_CREATE"
+    ANALYSIS_READ: "ANALYSIS_READ"
+    ARCHIVE_CAPTURE: "ARCHIVE_CAPTURE"
+    ASSESSMENT_CREATE: "ASSESSMENT_CREATE"
+    AUTOMATION_CREATE: "AUTOMATION_CREATE"
+    BENCHMARK_CREATE: "BENCHMARK_CREATE"
     CLOSE_TICKET: "TICKET_CLOSE"
-    RECEIVE_MISSION: "MISSION_INGEST"
+    CONTENT_CREATE: "CONTENT_CREATE"
+    CREATE_EPIC: "EPIC_CREATE"
+    CREATE_FEATURE: "FEATURE_CREATE"
+    CREATE_TICKET: "TICKET_CREATE"
+    CREATE_USER_STORY: "US_CREATE"
+    CURRICULUM_DESIGN: "CURRICULUM_DESIGN"
+    DASHBOARD_CREATE: "DASHBOARD_CREATE"
+    DASHBOARD_UPDATE: "DASHBOARD_UPDATE"
+    DECISION_ARCHIVE: "DECISION_ARCHIVE"
+    DECISION_PUBLISH: "DECISION_PUBLISH"
+    DELEGATION_CREATE: "DELEGATION_CREATE"
     DELIVERY_SUBMIT: "DELIVERY_SUBMIT"
+    DOCUMENT_CREATE: "DOCUMENT_CREATE"
+    DOCUMENT_READ: "DOCUMENT_READ"
+    DOCUMENT_UPDATE: "DOCUMENT_UPDATE"
+    EDITORIAL_PLAN_CREATE: "EDITORIAL_PLAN_CREATE"
+    EPIC_CREATE: "EPIC_CREATE"
+    EXPERIMENT_CREATE: "EXPERIMENT_CREATE"
+    FEATURE_CREATE: "FEATURE_CREATE"
+    GATE_BROADCAST: "GATE_BROADCAST"
+    GATE_NOTIFY: "GATE_NOTIFY"
+    GUIDELINES_CREATE: "GUIDELINES_CREATE"
+    INSIGHT_GENERATE: "INSIGHT_GENERATE"
+    MESSAGE_SEND: "MESSAGE_SEND"
+    MISSION_INGEST: "MISSION_INGEST"
+    MODEL_CREATE: "MODEL_CREATE"
+    NOTIFICATION_SEND: "NOTIFICATION_SEND"
     ORDER_CREATE: "ORDER_CREATE"
-    ORDER_CLOSE: "TICKET_CLOSE"
+    ORDER_ESCALATE: "ORDER_ESCALATE"
+    PLAN_CREATE: "PLAN_CREATE"
     PLAN_WORKFLOW: "WORKFLOW_PLAN"
+    PROCESS_DESIGN: "PROCESS_DESIGN"
+    PROGRAM_CREATE: "PROGRAM_CREATE"
+    PUBLISH_CONTENT: "PUBLISH_CONTENT"
+    RECEIVE_MISSION: "MISSION_INGEST"
+    REPORT_CREATE: "REPORT_CREATE"
+    REPORT_UPDATE: "REPORT_UPDATE"
     REVIEW_DELIVERABLE: "REVIEW_DELIVERABLE"
+    ROADMAP_CREATE: "ROADMAP_CREATE"
+    SIMULATION_RUN: "SIMULATION_RUN"
+    SOURCING: "SOURCING"
+    SPEC_CREATE: "SPEC_CREATE"
+    STRATEGY_CREATE: "STRATEGY_CREATE"
+    SURVEY_CREATE: "SURVEY_CREATE"
+    TEMPLATE_CREATE: "TEMPLATE_CREATE"
+    TEST_RUN: "TEST_RUN"
+    TICKET_CLOSE: "TICKET_CLOSE"
+    TICKET_CREATE: "TICKET_CREATE"
+    TICKET_UPDATE: "TICKET_UPDATE"
+    TICKET_VALIDATE: "TICKET_VALIDATE"
+    US_CREATE: "US_CREATE"
+    VALIDATE_NAMING: "VALIDATE_NAMING"
+    WORKFLOW_PLAN: "WORKFLOW_PLAN"
 
   prompt_macros:
     minimal_steps:
@@ -610,7 +838,7 @@ contracts:
   invariants:
     - "all action templates define MEMORY_UPDATE in post"
     - "every action under structure/livrables/gouvernance resolves regex/path refs"
-    - "post events using {TYPE} resolve to uppercase action families"
+    - "event_hooks, when present, emit uppercase action families"
     - "intent_router keys map to defined action_keys"
   schema: "jsonschema://arka/action-keys/v2"
 change_policy:

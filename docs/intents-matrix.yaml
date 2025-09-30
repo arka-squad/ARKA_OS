@@ -5,8 +5,8 @@ generated_from:
 summary: "Inventaire des intents promptés vs. action keys"
 stats:
   matrix_unique_intents: 53
-  action_keys_total: 100
-  intent_router_entries: 10
+  action_keys_total: 128
+  intent_router_entries: 61
 inventory:
   matrix_intents:
     - ADR_CREATE
@@ -62,77 +62,5 @@ inventory:
     - US_CREATE
     - VALIDATE_NAMING
     - WORKFLOW_PLAN
-  missing_in_action_keys:
-    - ADR_CREATE
-    - ASSESSMENT_CREATE
-    - AUTOMATION_CREATE
-    - BENCHMARK_CREATE
-    - CONTENT_CREATE
-    - CURRICULUM_DESIGN
-    - DASHBOARD_CREATE
-    - DASHBOARD_UPDATE
-    - DELEGATION_CREATE
-    - EDITORIAL_PLAN_CREATE
-    - EXPERIMENT_CREATE
-    - GUIDELINES_CREATE
-    - INSIGHT_GENERATE
-    - MESSAGE_SEND
-    - MODEL_CREATE
-    - NOTIFICATION_SEND
-    - PROCESS_DESIGN
-    - PROGRAM_CREATE
-    - PUBLISH_CONTENT
-    - ROADMAP_CREATE
-    - SIMULATION_RUN
-    - SOURCING
-    - SPEC_CREATE
-    - STRATEGY_CREATE
-    - SURVEY_CREATE
-    - TEMPLATE_CREATE
-    - TEST_RUN
-    - TICKET_VALIDATE
-  missing_in_intent_router:
-    - ADR_CREATE
-    - ANALYSIS_CREATE
-    - ANALYSIS_READ
-    - ARCHIVE_CAPTURE
-    - ASSESSMENT_CREATE
-    - AUTOMATION_CREATE
-    - BENCHMARK_CREATE
-    - CONTENT_CREATE
-    - CURRICULUM_DESIGN
-    - DASHBOARD_CREATE
-    - DASHBOARD_UPDATE
-    - DECISION_ARCHIVE
-    - DECISION_PUBLISH
-    - DELEGATION_CREATE
-    - DOCUMENT_CREATE
-    - DOCUMENT_READ
-    - DOCUMENT_UPDATE
-    - EDITORIAL_PLAN_CREATE
-    - EXPERIMENT_CREATE
-    - GATE_BROADCAST
-    - GATE_NOTIFY
-    - GUIDELINES_CREATE
-    - INSIGHT_GENERATE
-    - MESSAGE_SEND
-    - MODEL_CREATE
-    - NOTIFICATION_SEND
-    - ORDER_ESCALATE
-    - PLAN_CREATE
-    - PROCESS_DESIGN
-    - PROGRAM_CREATE
-    - PUBLISH_CONTENT
-    - REPORT_CREATE
-    - REPORT_UPDATE
-    - ROADMAP_CREATE
-    - SIMULATION_RUN
-    - SOURCING
-    - SPEC_CREATE
-    - STRATEGY_CREATE
-    - SURVEY_CREATE
-    - TEMPLATE_CREATE
-    - TEST_RUN
-    - TICKET_UPDATE
-    - TICKET_VALIDATE
-    - VALIDATE_NAMING
+  missing_in_action_keys: []
+  missing_in_intent_router: []
