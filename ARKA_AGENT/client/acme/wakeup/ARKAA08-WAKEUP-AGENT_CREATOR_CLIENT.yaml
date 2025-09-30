@@ -3,6 +3,7 @@ version: 1.0.0
 agent_id: arka-agent03-agent-creator-client
 use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.agent-creator-client
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.agent-creator-client
+expert_ref: client/acme/experts/ARKA_AGENT03-agent-creator-client.yaml
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
   dir: ARKA_META/.system/.mem/agent-creator-client/

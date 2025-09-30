@@ -1,6 +1,5 @@
 id: ARKPR20-WAKEUP-POLICIES
 version: 1.1.0
-exports: [rules_version, rules_index_ref, intents_common, guardrails]
 title: "Politiques par défaut des wake-ups"
 exports:
   rules_version: "0.1"

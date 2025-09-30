@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: compensation-benefits-analyst
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.hr_analyst
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.compensation-benefits-analyst
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.compensation-benefits-analyst
 expert_ref: client/acme/experts/ARKA_AGENT22-compensation-benefits-analyst.yaml
 

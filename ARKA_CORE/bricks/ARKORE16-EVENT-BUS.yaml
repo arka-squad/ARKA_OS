@@ -49,7 +49,7 @@ exports:
     mode: "multi"               # any of: local, webhook, stdout; multi = any subset
     local:
       shell: "/bin/bash"
-      base_dir: "scripts/"
+      base_dir: "scripts/handlers/"
       env_passthrough: ["ARKA_PROFILE", "CI", "GIT_COMMIT"]
       concurrency: 4
       retry: { max: 2, backoff: "200ms * 2^n" }
@@ -62,12 +62,11 @@ exports:
   subscriptions:
     - on: MEMORY_UPDATED
       using: local
-      run: "on_memory_update.sh"
+      run: "memory_updated__sync_embeddings.sh"
       args: ["--scope", "${scope.usId:-}" ]
     - on: DELIVERY_RECEIVED
       using: local
-      run: "ci/validate_delivery.py"
-      args: ["--severity", "S2"]
+      run: "delivery_received__adr_snapshot.js"
     - on: OWNER_CONFIRMATION_REQUESTED
       using: webhook
       run: "${ARKA_EVENT_WEBHOOK}"

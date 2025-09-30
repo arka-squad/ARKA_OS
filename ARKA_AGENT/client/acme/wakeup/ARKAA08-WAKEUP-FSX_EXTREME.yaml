@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: fsx-extreme-fullstack
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.emergency_responder
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.fsx-extreme-fullstack
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.fsx-extreme-fullstack
 expert_ref: client/acme/experts/ARKA_AGENT99-fsx-extreme-fullstack.yaml
 

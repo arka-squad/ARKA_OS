@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: lead-dev-batisseur
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.lead_dev
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.lead-dev-batisseur
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.lead-dev-batisseur
 expert_ref: client/acme/experts/ARKA_AGENT04-lead-dev-batisseur.yaml
 

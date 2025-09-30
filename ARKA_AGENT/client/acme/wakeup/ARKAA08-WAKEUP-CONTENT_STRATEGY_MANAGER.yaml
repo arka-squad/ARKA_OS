@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: content-strategy-manager
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.content_strategist
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.content-strategy-manager
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.content-strategy-manager
 expert_ref: client/acme/experts/ARKA_AGENT26-content-strategy-manager.yaml
 

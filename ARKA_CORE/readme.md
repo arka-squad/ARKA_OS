@@ -67,7 +67,7 @@ README.md                       # Ce fichier
 
 ## Prérequis
 
-* **Windows 11** : PowerShell 7+, Git, **Node 18+**, **jq**, **yq** (mikefarah/yq)
+* **Windows 11** : PowerShell 7+, Git, **Node 18+**, **Ruby 3+**, **jq**
 * (Optionnel) **WSL** / Git Bash pour scripts bash
 * Accès réseau si vous utilisez des webhooks ou des APIs (GitHub, Slack, …)
 
@@ -81,7 +81,7 @@ README.md                       # Ce fichier
 3. **Assembler** :
 
    * Bash : `bin/assemble.sh` → génère `build/assembly.yaml`
-   * PowerShell : utiliser `yq` pour merger master + overrides + packs `ARKA_EXT/*`
+   * PowerShell : `node bin/os-assemble.mjs dev`
 4. **Tester** : exécuter les tests de contrats (refs résolues, pas de doublons, invariants).
 5. **Brancher vos scripts** via un pack `ARKA_EXT/ARKAEXT**.yaml` (aucune modif du moteur).
 
@@ -97,11 +97,7 @@ README.md                       # Ce fichier
 **Exemple (bash) :**
 
 ```bash
-yq ea '. as $item ireduce ({}; . * $item )' \
-  ARKA_CORE/master-assembly.yaml \
-  profiles/dev.override.yaml \
-  ARKA_EXT/ARKAEXT01-SUBS-CI.yaml \
-> build/assembly.yaml
+node bin/os-assemble.mjs dev
 ```
 
 ---

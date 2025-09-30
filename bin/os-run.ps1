@@ -5,8 +5,8 @@ param(
   [string]$Runner = "ARKA_CORE/bin/runner.mjs"
 )
 node $Runner `
-  --core   "ARKA_CORE/build/core.assembly.yaml" `
-  --profil "ARKA_PROFIL/build/profiles.bundle.yaml" `
-  --agent  "ARKA_AGENT/build/assembly.yaml" `
+  --core   "build/core.assembly.yaml" `
+  --profil "build/profiles.bundle.yaml" `
+  --agent  "build/assembly.yaml" `
   $Action $InputJson `
   --as-agent $Agent

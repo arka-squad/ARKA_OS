@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: mission-qualifier
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.analyst
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.mission-qualifier
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.mission-qualifier
 expert_ref: client/acme/experts/ARKA_AGENT09-mission-qualifier.yaml
 

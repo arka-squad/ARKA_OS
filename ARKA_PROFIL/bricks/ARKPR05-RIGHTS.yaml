@@ -3,8 +3,8 @@ version: 1.2.0
 title: "Profils — Bundles de droits (compose action_sets + path_sets + net)"
 exports:
   rights:
-    agp_rights:
-      action_sets: [quality_ops, workflow_ops, review_ops]
+    base_rights:
+      action_sets: [quality_ops]
       allow_paths: [features_all]
       deny_paths:  [secrets]
       net_access:  restricted
@@ -40,7 +40,7 @@ exports:
       net_access:  none
 
     agp_rights:
-      action_sets: [control_ops, quality_ops]
+      action_sets: [control_ops, quality_ops, workflow_ops, review_ops]
       allow_paths: [features_all, meta_adr, meta_reports_agp]
       deny_paths:  [secrets]
       net_access:  restricted
@@ -109,6 +109,66 @@ exports:
     security_compliance_architect_rights:
       action_sets: [quality_ops]
       allow_paths: [features_all]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    brand_strategy_architect_rights:
+      action_sets: [analysis_ops, document_ops, plan_ops, report_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    compensation_benefits_analyst_rights:
+      action_sets: [analysis_ops, report_ops, document_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    content_strategy_manager_rights:
+      action_sets: [document_ops, analysis_ops, report_ops, plan_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    employee_experience_designer_rights:
+      action_sets: [plan_ops, document_ops, analysis_ops, report_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    growth_hacker_specialist_rights:
+      action_sets: [analysis_ops, report_ops, document_ops, plan_ops, workflow_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  full
+
+    hr_transformation_specialist_rights:
+      action_sets: [plan_ops, analysis_ops, report_ops, document_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    learning_development_strategist_rights:
+      action_sets: [plan_ops, analysis_ops, document_ops, report_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  restricted
+
+    marketing_analytics_expert_rights:
+      action_sets: [analysis_ops, report_ops, document_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  full
+
+    sourcing_specialist_rights:
+      action_sets: [analysis_ops, report_ops, document_ops, workflow_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
+      deny_paths:  [secrets]
+      net_access:  full
+
+    spec_writer_rights:
+      action_sets: [document_ops, analysis_ops, plan_ops, quality_ops]
+      allow_paths: [features_all, mem_only]
       deny_paths:  [secrets]
       net_access:  restricted
 contracts:
