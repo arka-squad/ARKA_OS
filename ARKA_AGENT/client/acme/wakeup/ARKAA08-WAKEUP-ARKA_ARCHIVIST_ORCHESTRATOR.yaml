@@ -3,6 +3,7 @@ version: 1.0.0
 agent_id: arka-agent01-arka-archivist-orchestrator
 use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.arka-archivist-orchestrator
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.arka-archivist-orchestrator
+expert_ref: client/acme/experts/ARKA_AGENT01-arka-archivist-orchestrator.yaml
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
   dir: ARKA_META/.system/.mem/arka-archivist-orchestrator/

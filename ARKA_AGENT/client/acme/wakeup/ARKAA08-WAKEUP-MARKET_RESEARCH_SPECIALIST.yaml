@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: market-research-specialist
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.market_research
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.market-research-specialist
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.market-research-specialist
 expert_ref: client/acme/experts/ARKA_AGENT08-market-research-specialist.yaml
 

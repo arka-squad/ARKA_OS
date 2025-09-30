@@ -4,7 +4,10 @@
   "scripts": {
     "build:ps": "pwsh -File bin/os-build.ps1",
     "build:sh": "bash bin/os-build.sh",
-    "run:ps":   "pwsh -File bin/os-run.ps1",
-    "run:sh":   "bash bin/os-run.sh"
+    "build:matrix": "node bin/generate-wakeup-matrix.mjs",
+    "validate": "node bin/os-validate.mjs",
+    "build": "npm run build:sh && npm run build:matrix",
+    "run:ps": "pwsh -File bin/os-run.ps1",
+    "run:sh": "bash bin/os-run.sh"
   }
 }

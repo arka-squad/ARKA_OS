@@ -1,13 +1,13 @@
 assembly:
   order: [08, 10, 11, 12, 13, 14, 15]
 requires:
-  - "../ARKA_CORE/build/core.assembly.yaml"
-  - "../ARKA_PROFIL/build/profiles.bundle.yaml"
+  - "../build/core.assembly.yaml"
+  - "../build/profiles.bundle.yaml"
 profiles:
   default:
     include:
-      - from: "../ARKA_CORE/build/core.assembly.yaml"
-      - from: "../ARKA_PROFIL/build/profiles.bundle.yaml"
+      - from: "../build/core.assembly.yaml"
+      - from: "../build/profiles.bundle.yaml"
     enable:
       # Wake-Ups Core (5 agents)
       - ARKAA08-WAKEUP-AGP@>=1.0.0
@@ -38,4 +38,3 @@ profiles:
       - ARKAA13-COMPLIANCE-POLICY@>=1.0.0
       - ARKAA14-VOCAB-ALIASES@>=1.0.0
       - ARKAA15-PLAN-DIRECTEUR@>=1.0.0
-      - ARKAA08-WAKEUP-AGP@>=1.0.0

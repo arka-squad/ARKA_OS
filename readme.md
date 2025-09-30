@@ -20,7 +20,7 @@ ARKA transforme une constitution complexe en **clés d'action simples** pour orc
 ### Prérequis
 - **Node.js 18+**
 - **Git**
-- **yq** ([mikefarah/yq](https://github.com/mikefarah/yq))
+- **Ruby 3+**
 - **PowerShell 7+** (Windows) ou **Bash** (Linux/macOS)
 
 ### Installation (30 secondes)

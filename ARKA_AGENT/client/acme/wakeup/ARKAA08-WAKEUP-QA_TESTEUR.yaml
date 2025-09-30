@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: qa-testeur
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.qa
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.qa-testeur
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.qa-testeur
 expert_ref: client/acme/experts/ARKA_AGENT13-qa-testeur.yaml
 

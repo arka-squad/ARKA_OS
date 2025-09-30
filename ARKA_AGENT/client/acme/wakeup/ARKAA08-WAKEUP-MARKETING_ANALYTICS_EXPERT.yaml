@@ -3,7 +3,7 @@ version: 3.0.0  # Pattern v3
 agent_id: marketing-analytics-expert
 
 # === RÉFÉRENCES SYSTÈME ===
-use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.data_analyst
+use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.marketing-analytics-expert
 capabilities_ref: ARKAA19-AGENT-CAPABILITIES:agents.marketing-analytics-expert
 expert_ref: client/acme/experts/ARKA_AGENT27-marketing-analytics-expert.yaml
 

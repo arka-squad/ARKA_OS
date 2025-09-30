@@ -3,6 +3,7 @@ version: 1.0.0
 agent_id: arka-agent00-archivist
 use_profile_ref: ARKPR08-PROFILES-CATALOG:profiles.archivist
 capabilities_ref: client/acme/ARKAA19-AGENT-CAPABILITIES.yaml#agents.archivist
+expert_ref: client/acme/experts/ARKA_AGENT00-archivist.yaml
 keys_catalog_ref: ARKORE11-KEYS-ANNUAIRE:keys
 memory:
   dir: ARKA_META/.system/.mem/archivist/
